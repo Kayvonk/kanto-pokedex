@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kanto Pokédex</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="pokedex">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <svg class="panel-bg" viewBox="0 0 440 500" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="440" height="500" fill="#d62828"/>
+      <path d="M0 0 L440 0 L440 60 L280 60 C240 60 160 120 110 120 L0 120 Z" fill="#b71c1c"/>
+    </svg>
+
+    <div class="left-panel-top">
+      <div class="camera"></div>
+      <div class="lights">
+        <div class="light red"></div>
+        <div class="light yellow"></div>
+        <div class="light green"></div>
+      </div>
+    </div>
+
+    <div class="screen-frame">
+      <div class="screen">
+        <img id="pokemonImage" src="" alt="">
+      </div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="pokemonInput" placeholder="Enter name or ID">
+      <button id="searchBtn">Search</button>
+    </div>
+
+  </div>
+
+  <!-- HINGE --><div class="hinge"></div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <svg class="panel-bg" viewBox="0 0 440 500" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 60 L160 60 C200 60 280 120 330 120 L440 120 L440 500 L0 500 Z" fill="#d62828"/>
+    </svg>
+
+    <div class="info-screen">
+      <h2 id="pokemonName">---</h2>
+      <p><strong>ID:</strong> <span id="pokemonId">---</span></p>
+      <p><strong>Type:</strong> <span id="pokemonType">---</span></p>
+      <p><strong>Height:</strong> <span id="pokemonHeight">---</span></p>
+      <p><strong>Weight:</strong> <span id="pokemonWeight">---</span></p>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

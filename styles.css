@@ -1,0 +1,154 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* MAIN WRAPPER */
+.pokedex {
+  display: flex;
+  width: 900px;
+  height: 500px;
+}
+
+/* LEFT PANEL */
+.left-panel {
+  flex: 1;
+  border-radius: 25px 0 0 25px;
+  padding: 30px;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+  flex: 1;
+  border-radius: 0 25px 25px 0;
+  padding: 30px;
+  padding-top: 180px;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* SVG panel background */
+.panel-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+/* Top ornament container */
+.left-panel-top {
+  position: relative;
+  display: flex;
+  gap: 20px;
+}
+
+/* Decorative camera */
+.camera {
+  width: 50px;
+  height: 50px;
+  background: #00b4d8;
+  border-radius: 50%;
+  border: 5px solid white;
+}
+
+/* Decorative lights */
+.lights {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.light {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+
+.red { background: red; }
+.yellow { background: yellow; }
+.green { background: green; }
+
+/* Screen frame */
+.screen-frame {
+  background: #ccc;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.screen {
+  background: #111;
+  height: 220px;
+  border-radius: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.screen img {
+  max-height: 100%;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 10px;
+}
+
+.controls input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+}
+
+.controls button {
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: none;
+  background: #222;
+  color: white;
+  cursor: pointer;
+}
+
+/* Hinge */
+.hinge {
+  width: 20px;
+  background: #a4161a;
+  border-radius: 10px;
+}
+
+/* Info screen */
+.info-screen {
+  background: #2a9d8f;
+  width: 100%;
+  height: 200px;
+  border-radius: 15px;
+  padding: 20px;
+  color: white;
+}
+
+.info-screen h2 {
+  margin-bottom: 15px;
+}
