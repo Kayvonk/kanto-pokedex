@@ -29,7 +29,6 @@ body {
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   overflow: hidden;
 }
 
@@ -90,20 +89,43 @@ body {
 .yellow { background: yellow; }
 .green { background: green; }
 
+/* LEFT PANEL BOTTOM CONTAINER */
+.left-panel-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20%;
+}
+
 /* Screen frame */
 .screen-frame {
-  background: #ccc;
-  padding: 20px;
-  border-radius: 20px;
+  position: relative;
+  width: 300px;
+  height: 220px;
+  padding: 20px 20px 30px;
+}
+
+.screen-frame-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
 }
 
 .screen {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
   background: #111;
-  height: 220px;
   border-radius: 15px;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 10px;
 }
 
 .screen img {
