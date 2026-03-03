@@ -35,12 +35,12 @@ body {
 }
 
 /* RIGHT PANEL */
-
-.right-panel-container {
+.right-panel-content {
   display: flex;
   flex-direction: column;
   width: 100%;
   align-items: center;
+  animation: revealContent 1.4s 0.2s both;
 }
 
 .menu-buttons {
@@ -128,7 +128,7 @@ body {
 }
 
 /* LEFT PANEL BOTTOM CONTAINER */
-.left-panel-bottom {
+.left-panel-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -141,7 +141,7 @@ body {
   position: relative;
   width: 300px;
   height: 220px;
-  padding: 20px 20px 30px;
+  padding: 8% 7% 12%;
 }
 
 .screen-frame-bg {
@@ -202,12 +202,11 @@ body {
 /* Info screen */
 .info-screen {
   background: #2a9d8f;
-  width: 100%;
+  width: 80%;
   height: 200px;
   border-radius: 15px;
   padding: 20px;
   color: white;
-  animation: revealContent 1.4s 0.2s both;
 }
 
 @keyframes revealContent {
@@ -223,4 +222,102 @@ body {
 
 .info-screen h2 {
   margin-bottom: 15px;
+}
+
+/* Nav arrows — hidden on desktop */
+.nav-arrow {
+  display: none;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  body {
+    align-items: flex-start;
+    overflow: hidden;
+  }
+
+  .pokedex-viewport {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .pokedex {
+    width: 200vw;
+    height: 100vh;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .left-panel {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    flex-shrink: 0;
+  }
+
+  .left-panel-content {
+    flex: 1;
+    justify-content: center;
+    margin-top: 0;
+  }
+
+  .right-panel {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    flex-shrink: 0;
+    padding-top: 30px;
+    align-items: center;
+    animation: none;
+  }
+
+  .right-panel-content {
+    animation: none;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .hinge {
+    display: none;
+  }
+
+  .screen-frame {
+    width: min(calc(100vw - 160px), 60vh);
+    aspect-ratio: 300 / 220;
+    height: auto;
+  }
+
+  .info-screen {
+    width:80%;
+    height: auto;
+  }
+
+  .nav-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .nav-arrow-right {
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .nav-arrow-left {
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
 }

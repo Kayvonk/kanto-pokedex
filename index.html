@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="pokedex-viewport">
     <div class="pokedex">
       <!-- LEFT PANEL -->
       <div class="left-panel">
@@ -31,7 +32,13 @@
           </div>
         </div>
 
-        <div class="left-panel-bottom">
+        <button class="nav-arrow nav-arrow-right" aria-label="View info panel">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path d="M8 5l8 7-8 7" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="left-panel-content">
           <div class="screen-frame">
             <svg
               class="screen-frame-bg"
@@ -77,7 +84,12 @@
           />
         </svg>
 
-        <div class="right-panel-container">
+        <div class="right-panel-content">
+          <button class="nav-arrow nav-arrow-left" aria-label="Back to Pokédex">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path d="M16 5l-8 7 8 7" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
           <div class="info-screen">
             <h2 id="pokemonName">---</h2>
             <p><strong>ID:</strong> <span id="pokemonId">---</span></p>
@@ -91,6 +103,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
 
     <script src="script.js"></script>
