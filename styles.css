@@ -18,6 +18,8 @@ body {
   display: flex;
   width: 900px;
   height: 500px;
+  perspective: 1200px;
+  perspective-origin: center center;
 }
 
 /* LEFT PANEL */
@@ -33,6 +35,25 @@ body {
 }
 
 /* RIGHT PANEL */
+
+.right-panel-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: center;
+}
+
+.menu-buttons {
+  margin-top: 30px;
+}
+.menu-buttons button {
+  width: 120px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #222;
+  color: white;
+}
+
 .right-panel {
   flex: 1;
   border-radius: 0 25px 25px 0;
@@ -44,6 +65,17 @@ body {
   align-items: flex-start;
   justify-content: center;
   overflow: hidden;
+  transform-origin: left center;
+  animation: bookOpen 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+}
+
+@keyframes bookOpen {
+  from {
+    transform: rotateY(-180deg);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
 }
 
 /* SVG panel background */
@@ -85,9 +117,15 @@ body {
   border-radius: 50%;
 }
 
-.red { background: red; }
-.yellow { background: yellow; }
-.green { background: green; }
+.red {
+  background: red;
+}
+.yellow {
+  background: yellow;
+}
+.green {
+  background: green;
+}
 
 /* LEFT PANEL BOTTOM CONTAINER */
 .left-panel-bottom {
@@ -169,6 +207,18 @@ body {
   border-radius: 15px;
   padding: 20px;
   color: white;
+  animation: revealContent 1.4s 0.2s both;
+}
+
+@keyframes revealContent {
+  0%,
+  27% {
+    opacity: 0;
+  }
+  28%,
+  100% {
+    opacity: 1;
+  }
 }
 
 .info-screen h2 {
