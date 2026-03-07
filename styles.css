@@ -18,11 +18,47 @@ body {
   height: 100vh;
 }
 
+#volumeBar {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+#volumeBar.visible {
+  opacity: 1;
+}
+
+#volumeBarTrack {
+  width: 150px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+#volumeBarFill {
+  height: 100%;
+  background: white;
+  border-radius: 3px;
+  transition: width 0.15s;
+}
+
 /* MAIN WRAPPER */
 .pokedex {
   display: flex;
   width: 900px;
-  height: 500px;
+  height: 620px;
   perspective: 1200px;
   perspective-origin: center center;
 }
@@ -48,8 +84,37 @@ body {
   animation: revealContent 1.4s 0.2s both;
 }
 
+.voice-select-wrapper {
+  margin-top: 15px;
+  width: 80%;
+}
+
+#voiceSelect {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  background-color: #222;
+  color: white;
+  cursor: pointer;
+}
+
+.volume-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.volume-controls button {
+  width: 80px;
+  padding: 8px;
+  border-radius: 8px;
+  background-color: #222;
+  color: white;
+}
+
 .menu-buttons {
-  margin-top: 30px;
+  margin-top: 15px;
 }
 
 .menu-buttons button {
@@ -64,7 +129,7 @@ body {
   flex: 1;
   border-radius: 0 25px 25px 0;
   padding: 30px;
-  padding-top: 180px;
+  padding-top: 220px;
   position: relative;
   isolation: isolate;
   display: flex;
@@ -243,6 +308,12 @@ body {
   border-radius: 15px;
   padding: 20px;
   color: white;
+  overflow-y: scroll;
+  scrollbar-width: none;
+}
+
+.info-screen::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes revealContent {

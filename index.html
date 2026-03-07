@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div id="volumeBar">
+      <span id="volumeIcon">🔊</span>
+      <div id="volumeBarTrack">
+        <div id="volumeBarFill"></div>
+      </div>
+    </div>
     <div class="pokedex-viewport">
       <div class="pokedex">
         <!-- LEFT PANEL -->
@@ -70,6 +76,15 @@
               />
               <button id="searchBtn">Search</button>
             </div>
+
+            <div class="voice-select-wrapper">
+              <select id="voiceSelect"></select>
+            </div>
+
+            <div class="volume-controls">
+              <button id="volDownBtn">&#x1F50A;−</button>
+              <button id="volUpBtn">&#x1F50A;+</button>
+            </div>
           </div>
         </div>
 
@@ -112,6 +127,7 @@
                 <strong>Weight:</strong> <span id="pokemonWeight">---</span>
               </p>
             </div>
+            
             <div class="menu-buttons">
               <button id="prevBtn">Previous</button>
               <button id="nextBtn">Next</button>
