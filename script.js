@@ -19,6 +19,7 @@ function displayPokemon(pokemon) {
   img.alt = pokemon.name;
   img.style.display = "block";
   document.getElementById("pokemonName").textContent = pokemon.name;
+  document.getElementById("pokemonDescription").textContent = pokemon.description;
   document.getElementById("pokemonId").textContent = `#${pokemon.id}`;
   document.getElementById("pokemonType").textContent = pokemon.types.join(", ");
   document.getElementById("pokemonHeight").textContent = pokemon.height;
