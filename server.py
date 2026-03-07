@@ -40,6 +40,7 @@ def build_pokemon_data(pokemon, species_data):
         "types": [t["type"]["name"] for t in pokemon["types"]],
         "height": pokemon["height"],
         "weight": pokemon["weight"],
+        "cry": pokemon.get("cries", {}).get("latest"),
     }
 
 

@@ -1,6 +1,7 @@
 let currentId = null;
-let speechVolume = 1;
+let speechVolume = 0.3;
 let selectedVoice = null;
+let currentCryUrl = null;
 
 function populateVoices() {
   const voices = window.speechSynthesis.getVoices();
@@ -54,15 +55,56 @@ function displayPokemon(pokemon) {
   img.style.display = "block";
   document.getElementById("pokemonName").textContent = pokemon.name;
   document.getElementById("pokemonDescription").textContent = pokemon.description;
+  const camera = document.querySelector(".camera");
+  camera.classList.remove("flash");
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(pokemon.description);
-  utterance.volume = speechVolume;
-  if (selectedVoice) utterance.voice = selectedVoice;
-  window.speechSynthesis.speak(utterance);
+
+  const flashTimers = [];
+
+  const stopFlash = () => {
+    flashTimers.forEach(clearTimeout);
+    flashTimers.length = 0;
+    camera.classList.remove("flash");
+  };
+
+  const scheduleWordFlashes = (words) => {
+    let elapsed = 0;
+    words.forEach(word => {
+      const t = setTimeout(() => {
+        camera.classList.add("flash");
+        setTimeout(() => camera.classList.remove("flash"), 140);
+      }, elapsed);
+      flashTimers.push(t);
+      const charCount = word.replace(/\W/g, "").length || 1;
+      elapsed += Math.max(180, charCount * 55) + 70;
+    });
+  };
+
+  const makeUtterance = (text) => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.volume = speechVolume;
+    if (selectedVoice) u.voice = selectedVoice;
+    return u;
+  };
+
+  const nameUtterance = makeUtterance(pokemon.name);
+  nameUtterance.onstart = () => scheduleWordFlashes(pokemon.name.split(/\s+/));
+  nameUtterance.onerror = stopFlash;
+  nameUtterance.onend = () => {
+    const descUtterance = makeUtterance(pokemon.description);
+    descUtterance.onstart = () => scheduleWordFlashes(pokemon.description.split(/\s+/));
+    descUtterance.onend = stopFlash;
+    descUtterance.onerror = stopFlash;
+    window.speechSynthesis.speak(descUtterance);
+  };
+
+  window.speechSynthesis.speak(nameUtterance);
   document.getElementById("pokemonId").textContent = `#${pokemon.id}`;
   document.getElementById("pokemonType").textContent = pokemon.types.join(", ");
   document.getElementById("pokemonHeight").textContent = pokemon.height;
   document.getElementById("pokemonWeight").textContent = pokemon.weight;
+  currentCryUrl = pokemon.cry ?? null;
+  document.getElementById("cryBtn").disabled = !currentCryUrl;
 }
 
 document.getElementById("searchBtn").addEventListener("click", () => {
@@ -77,13 +119,21 @@ document.getElementById("pokemonInput").addEventListener("keydown", (e) => {
   }
 });
 
+document.getElementById("cryBtn").addEventListener("click", () => {
+  if (currentCryUrl) {
+    const cry = new Audio(currentCryUrl);
+    cry.volume = speechVolume;
+    cry.play();
+  }
+});
+
 document.getElementById("volDownBtn").addEventListener("click", () => {
-  speechVolume = Math.max(0, parseFloat((speechVolume - 0.2).toFixed(1)));
+  speechVolume = Math.max(0, parseFloat((speechVolume - 0.05).toFixed(2)));
   showVolumeBar();
 });
 
 document.getElementById("volUpBtn").addEventListener("click", () => {
-  speechVolume = Math.min(1, parseFloat((speechVolume + 0.2).toFixed(1)));
+  speechVolume = Math.min(1, parseFloat((speechVolume + 0.05).toFixed(2)));
   showVolumeBar();
 });
 

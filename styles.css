@@ -85,13 +85,30 @@ body {
 }
 
 .voice-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 15px;
   width: 80%;
 }
 
+#cryBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #111;
+  border: none;
+  cursor: pointer;
+}
+
+#cryBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 #voiceSelect {
-  width: 100%;
-  padding: 8px;
+  flex: 1;
+  padding: 4px 6px;
   border-radius: 8px;
   border: none;
   background-color: #222;
@@ -115,9 +132,18 @@ body {
 
 .menu-buttons {
   margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 
-.menu-buttons button {
+.cry-btn-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.menu-nav-row button {
   width: 120px;
   padding: 10px;
   border-radius: 8px;
@@ -173,6 +199,12 @@ body {
   background: #00b4d8;
   border-radius: 50%;
   border: 5px solid white;
+  transition: background 0.1s, box-shadow 0.1s;
+}
+
+.camera.flash {
+  background: #ffffff;
+  box-shadow: 0 0 24px 8px #00d4ff;
 }
 
 /* Decorative lights */
@@ -275,6 +307,7 @@ body {
 .controls {
   display: flex;
   gap: 10px;
+  width: 80%;
 }
 
 .controls input {
