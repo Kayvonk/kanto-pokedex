@@ -1,3 +1,8 @@
+@font-face {
+  font-family: 'EarlyGameBoy';
+  src: url('Early_GameBoy.ttf') format('truetype');
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -160,6 +165,11 @@ body {
 }
 
 /* INNER SCREEN (now positioned instead of padded) */
+@keyframes screenOn {
+  from { background: #111; }
+  to   { background: lightblue; }
+}
+
 .screen {
   position: absolute;
 
@@ -168,16 +178,32 @@ body {
   right: 7%;
   bottom: 12%;
 
-  background: #111;
   border-radius: 15px;
   display: flex;
   justify-content: center;
   align-items: center;
+  animation: screenOn 1s 1.6s both;
 }
 
 .screen img {
+  display: none;
   max-height: 100%;
   max-width: 100%;
+}
+
+#screenText {
+  font-family: 'EarlyGameBoy', monospace;
+  font-size: 10px;
+  color: #333;
+  text-align: center;
+  padding: 10px;
+  line-height: 1.8;
+  opacity: 0;
+  animation: fadeIn 0.5s 2.6s forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
 }
 
 /* Controls */
@@ -299,8 +325,9 @@ body {
   }
 
   .info-screen {
-    width: 80%;
+    width: calc(100vw - 140px);
     height: auto;
+    aspect-ratio: 300 / 220;
   }
 
   .nav-arrow {
