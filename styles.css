@@ -250,6 +250,33 @@ body {
   width: 280px;
 }
 
+.storage-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 280px;
+  margin-top: 10px;
+}
+
+.storage-nav button {
+  width: 52px;
+  height: 8px;
+  background: #333;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #1a1a1a;
+}
+
+.storage-nav button:hover {
+  background: #555;
+}
+
+.storage-nav button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #1a1a1a;
+}
+
 .storage-grid {
   display: grid;
   grid-template-columns: repeat(5, 56px);
@@ -298,6 +325,10 @@ body {
   border: 1px solid #888;
   cursor: pointer;
   box-shadow: 0 4px 0 #888;
+}
+
+.menu-nav-row button:not(#favoriteBtn):hover {
+  background-color: #ccc;
 }
 
 .menu-nav-row button:active {
