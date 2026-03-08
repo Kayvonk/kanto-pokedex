@@ -3,6 +3,8 @@ let speechVolume = parseFloat(localStorage.getItem("speechVolume") ?? "0.3");
 let selectedVoice = null;
 let currentCryUrl = null;
 let currentLang = "en";
+let isShiny = false;
+let currentSprites = null;
 
 // Maps TTS BCP-47 prefix → PokeAPI language name
 const ttsToPokeApiLang = {
@@ -98,6 +100,9 @@ async function fetchPokemon(identifier) {
 
 function displayPokemon(pokemon) {
   currentId = pokemon.id;
+  isShiny = false;
+  currentSprites = pokemon.sprites;
+  document.getElementById("shinyBtn").querySelector("circle").setAttribute("fill", "#b71c1c");
   document.getElementById("screenText").style.display = "none";
   const img = document.getElementById("pokemonImage");
   img.src = pokemon.sprites?.official?.default || pokemon.sprites?.front_default || "";
@@ -111,6 +116,17 @@ function displayPokemon(pokemon) {
 
   let flashInterval = null;
 
+  const doFlash = () => {
+    camera.classList.remove("flash");
+    camera.classList.add("flash");
+    setTimeout(() => camera.classList.remove("flash"), 140);
+  };
+
+  const startFallbackInterval = () => {
+    if (flashInterval) clearInterval(flashInterval);
+    flashInterval = setInterval(doFlash, 350);
+  };
+
   const stopFlash = () => {
     if (flashInterval) {
       clearInterval(flashInterval);
@@ -119,12 +135,13 @@ function displayPokemon(pokemon) {
     camera.classList.remove("flash");
   };
 
-  const startFlash = () => {
-    stopFlash();
-    flashInterval = setInterval(() => {
-      camera.classList.add("flash");
-      setTimeout(() => camera.classList.remove("flash"), 140);
-    }, 320);
+  const attachFlash = (utterance) => {
+    utterance.onstart = startFallbackInterval;
+    utterance.addEventListener("boundary", (event) => {
+      if (event.name !== "word") return;
+      doFlash();
+      startFallbackInterval(); // reset interval so it stays in step with words
+    });
   };
 
   const makeUtterance = (text) => {
@@ -135,11 +152,11 @@ function displayPokemon(pokemon) {
   };
 
   const nameUtterance = makeUtterance(pokemon.name);
-  nameUtterance.onstart = startFlash;
+  attachFlash(nameUtterance);
   nameUtterance.onerror = stopFlash;
   nameUtterance.onend = () => {
     const descUtterance = makeUtterance(pokemon.description);
-    descUtterance.onstart = startFlash;
+    attachFlash(descUtterance);
     descUtterance.onend = stopFlash;
     descUtterance.onerror = stopFlash;
     window.speechSynthesis.speak(descUtterance);
@@ -153,6 +170,20 @@ function displayPokemon(pokemon) {
   currentCryUrl = pokemon.cry ?? null;
   document.getElementById("cryBtn").disabled = !currentCryUrl;
 }
+
+document.getElementById("shinyBtn").addEventListener("click", () => {
+  if (!currentSprites) return;
+  isShiny = !isShiny;
+  const img = document.getElementById("pokemonImage");
+  const btn = document.getElementById("shinyBtn").querySelector("circle");
+  if (isShiny) {
+    img.src = currentSprites.official?.shiny || currentSprites.front_default || "";
+    btn.setAttribute("fill", "#f4c430");
+  } else {
+    img.src = currentSprites.official?.default || currentSprites.front_default || "";
+    btn.setAttribute("fill", "#b71c1c");
+  }
+});
 
 document.getElementById("searchBtn").addEventListener("click", () => {
   const val = document.getElementById("pokemonInput").value.trim().toLowerCase();
@@ -169,7 +200,7 @@ document.getElementById("pokemonInput").addEventListener("keydown", (e) => {
 document.getElementById("cryBtn").addEventListener("click", () => {
   if (currentCryUrl) {
     const cry = new Audio(currentCryUrl);
-    cry.volume = speechVolume;
+    cry.volume = speechVolume * 0.5;
     cry.play();
   }
 });
@@ -194,6 +225,7 @@ document.getElementById("dpadLeft").addEventListener("click", () => {
 
 document.getElementById("dpadRight").addEventListener("click", () => {
   if (currentId) fetchPokemon(currentId + 1);
+  else fetchPokemon(1);
 });
 
 document.getElementById("dpadUp").addEventListener("click", () => {
@@ -203,6 +235,7 @@ document.getElementById("dpadUp").addEventListener("click", () => {
 
 document.getElementById("dpadDown").addEventListener("click", () => {
   if (currentId) fetchPokemon(currentId + 10);
+  else fetchPokemon(10);
 });
 
 // Mobile panel navigation
