@@ -6,6 +6,89 @@ let currentLang = "en";
 let isShiny = false;
 let currentSprites = null;
 
+// Storage / favourites
+// Each of the 10 boxes holds an array of pokemon objects
+const STORAGE_SIZE = 10;
+let storage = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem("pokestorage_v2"));
+    if (Array.isArray(saved) && saved.length === STORAGE_SIZE) return saved;
+  } catch {}
+  return Array.from({ length: STORAGE_SIZE }, () => []);
+})();
+let selectedBox = 0;      // which box is selected (0-9)
+let boxCursor = 0;        // position within selectedBox's pokemon list
+
+function saveStorage() {
+  localStorage.setItem("pokestorage_v2", JSON.stringify(storage));
+}
+
+function updateStorageUI() {
+  document.querySelectorAll(".storage-box").forEach((box, i) => {
+    box.classList.toggle("occupied", storage[i].length > 0);
+    box.classList.toggle("selected", i === selectedBox);
+  });
+}
+
+function isInSelectedBox() {
+  return currentId != null && storage[selectedBox].some(p => p.id === currentId);
+}
+
+function updateFavoriteBtn() {
+  const btn = document.getElementById("favoriteBtn");
+  btn.classList.toggle("favorited", isInSelectedBox());
+}
+
+function showBoxView(boxIndex) {
+  document.getElementById("pokemonView").style.display = "none";
+  document.getElementById("boxView").style.display = "block";
+
+  const box = storage[boxIndex];
+  document.getElementById("boxViewTitle").textContent = `Box ${boxIndex + 1}`;
+  document.getElementById("boxViewCount").textContent =
+    box.length === 0 ? "empty" : `${box.length} Pokémon`;
+
+  const list = document.getElementById("boxViewList");
+  list.innerHTML = "";
+
+  if (box.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "box-empty";
+    empty.textContent = "No Pokémon stored here yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  box.forEach((pokemon, i) => {
+    const entry = document.createElement("div");
+    entry.className = "box-entry";
+
+    const num = document.createElement("span");
+    num.className = "box-entry-num";
+    num.textContent = i + 1;
+
+    const img = document.createElement("img");
+    img.src = pokemon.sprites?.front_default || pokemon.sprites?.official?.default || "";
+    img.alt = pokemon.name;
+
+    const name = document.createElement("span");
+    name.className = "box-entry-name";
+    name.textContent = pokemon.name;
+
+    entry.append(num, img, name);
+    entry.addEventListener("click", () => {
+      boxCursor = i;
+      fetchPokemon(pokemon.id);
+    });
+    list.appendChild(entry);
+  });
+}
+
+function hiddenBoxView() {
+  document.getElementById("pokemonView").style.display = "block";
+  document.getElementById("boxView").style.display = "none";
+}
+
 // Maps TTS BCP-47 prefix → PokeAPI language name
 const ttsToPokeApiLang = {
   en: "en", fr: "fr", de: "de", es: "es", it: "it",
@@ -103,6 +186,8 @@ function displayPokemon(pokemon) {
   isShiny = false;
   currentSprites = pokemon.sprites;
   document.getElementById("shinyBtn").querySelector("circle").setAttribute("fill", "#b71c1c");
+  hiddenBoxView();
+  updateFavoriteBtn();
   document.getElementById("screenText").style.display = "none";
   const img = document.getElementById("pokemonImage");
   img.src = pokemon.sprites?.official?.default || pokemon.sprites?.front_default || "";
@@ -217,7 +302,65 @@ document.getElementById("volUpBtn").addEventListener("click", () => {
   showVolumeBar();
 });
 
-// prevBtn and nextBtn reserved for storage box navigation
+// Storage box click — select that box and show its contents
+document.querySelectorAll(".storage-box").forEach((box) => {
+  box.addEventListener("click", () => {
+    selectedBox = parseInt(box.dataset.slot);
+    boxCursor = 0;
+    updateStorageUI();
+    updateFavoriteBtn();
+    showBoxView(selectedBox);
+  });
+});
+
+// Favourite button — append current pokemon to the selected box
+document.getElementById("favoriteBtn").addEventListener("click", () => {
+  if (!currentId || !currentSprites) return;
+  if (isInSelectedBox()) {
+    storage[selectedBox] = storage[selectedBox].filter(p => p.id !== currentId);
+    boxCursor = Math.max(0, Math.min(boxCursor, storage[selectedBox].length - 1));
+  } else {
+    storage[selectedBox].push({
+      id: currentId,
+      name: document.getElementById("pokemonName").textContent,
+      sprites: currentSprites,
+    });
+    boxCursor = storage[selectedBox].length - 1;
+  }
+  saveStorage();
+  updateStorageUI();
+  updateFavoriteBtn();
+  if (document.getElementById("boxView").style.display !== "none") {
+    showBoxView(selectedBox);
+  }
+});
+
+// Storage prev/next buttons — change which box is selected
+document.getElementById("storagePrevBtn").addEventListener("click", () => {
+  if (selectedBox > 0) { selectedBox--; boxCursor = 0; updateStorageUI(); updateFavoriteBtn(); }
+});
+
+document.getElementById("storageNextBtn").addEventListener("click", () => {
+  if (selectedBox < STORAGE_SIZE - 1) { selectedBox++; boxCursor = 0; updateStorageUI(); updateFavoriteBtn(); }
+});
+
+// prevBtn/nextBtn — cycle through pokemon within the selected box
+document.getElementById("prevBtn").addEventListener("click", () => {
+  const box = storage[selectedBox];
+  if (!box.length) return;
+  boxCursor = (boxCursor - 1 + box.length) % box.length;
+  fetchPokemon(box[boxCursor].id);
+});
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+  const box = storage[selectedBox];
+  if (!box.length) return;
+  boxCursor = (boxCursor + 1) % box.length;
+  fetchPokemon(box[boxCursor].id);
+});
+
+// Init storage UI on load
+updateStorageUI();
 
 document.getElementById("dpadLeft").addEventListener("click", () => {
   if (currentId && currentId > 1) fetchPokemon(currentId - 1);

@@ -145,10 +145,19 @@
               </svg>
             </button>
             <div class="info-screen">
-              <h2 id="pokemonName">---</h2>
-              <p id="pokemonDescription">---</p>
-              <p><strong>ID:</strong> <span id="pokemonId">---</span></p>
-              <p><strong>Type:</strong> <span id="pokemonType">---</span></p>
+              <div id="pokemonView">
+                <h2 id="pokemonName">---</h2>
+                <p id="pokemonDescription">---</p>
+                <p><strong>ID:</strong> <span id="pokemonId">---</span></p>
+                <p><strong>Type:</strong> <span id="pokemonType">---</span></p>
+              </div>
+              <div id="boxView" style="display:none">
+                <div id="boxViewHeader">
+                  <span id="boxViewTitle"></span>
+                  <span id="boxViewCount"></span>
+                </div>
+                <div id="boxViewList"></div>
+              </div>
             </div>
 
             <div class="storage-grid" id="storageGrid">

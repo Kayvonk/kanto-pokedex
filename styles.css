@@ -306,9 +306,6 @@ body {
   box-shadow: 0 1px 0 #0e3d5c;
 }
 
-.storage-box.occupied {
-  background: #0d4f7a;
-}
 
 .menu-nav-row {
   display: flex;
@@ -361,6 +358,10 @@ body {
   border-radius: 50%;
   transform: rotate(-30deg);
   pointer-events: none;
+}
+
+#favoriteBtn.favorited {
+  background-color: #ffe566;
 }
 
 .menu-stat-row {
@@ -639,6 +640,82 @@ body {
 .info-screen p:has(#pokemonType) {
   margin-top: 6px;
   margin-bottom: 6px;
+}
+
+/* Box view */
+#boxView {
+  width: 100%;
+}
+
+#boxViewHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+#boxViewTitle {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+#boxViewCount {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+#boxViewList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.box-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.box-entry:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.box-entry-num {
+  font-size: 9px;
+  opacity: 0.55;
+  width: 14px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.box-entry img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.box-entry-name {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+.box-empty {
+  text-align: center;
+  opacity: 0.55;
+  font-size: 11px;
+  font-style: italic;
+  padding: 16px 0;
 }
 
 /* Nav arrows hidden on desktop */
