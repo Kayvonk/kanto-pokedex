@@ -268,7 +268,11 @@ function displayPokemon(pokemon) {
   const makeUtterance = (text) => {
     const u = new SpeechSynthesisUtterance(text);
     u.volume = speechVolume;
-    if (selectedVoice) u.voice = selectedVoice;
+    if (selectedVoice) {
+      // iOS Safari requires a fresh voice object at speech time — stored objects go stale
+      const freshVoice = window.speechSynthesis.getVoices().find(v => v.name === selectedVoice.name);
+      u.voice = freshVoice ?? selectedVoice;
+    }
     return u;
   };
 
