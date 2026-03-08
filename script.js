@@ -1,26 +1,76 @@
 let currentId = null;
-let speechVolume = 0.3;
+let speechVolume = parseFloat(localStorage.getItem("speechVolume") ?? "0.3");
 let selectedVoice = null;
 let currentCryUrl = null;
+let currentLang = "en";
+
+// Maps TTS BCP-47 prefix → PokeAPI language name
+const ttsToPokeApiLang = {
+  en: "en", fr: "fr", de: "de", es: "es", it: "it",
+  ja: "ja", ko: "ko", zh: "zh-Hans"
+};
+
+const LANG_CONFIG = [
+  { code: "en-US", label: "English (US)" },
+  { code: "en-GB", label: "English (UK)" },
+  { code: "es-MX", label: "Spanish", fallback: v => v.lang.startsWith("es-") && v.lang !== "es-ES" },
+  { code: "es-ES", label: "European Spanish" },
+  { code: "fr-FR", label: "French" },
+  { code: "de-DE", label: "German" },
+  { code: "ja-JP", label: "Japanese" },
+  { code: "ko-KR", label: "Korean" },
+  { code: "it-IT", label: "Italian" },
+];
 
 function populateVoices() {
   const voices = window.speechSynthesis.getVoices();
-  const select = document.getElementById("voiceSelect");
-  select.innerHTML = "";
-  voices.forEach((voice, i) => {
-    const option = document.createElement("option");
-    option.value = i;
-    option.textContent = `${voice.name} (${voice.lang})`;
-    select.appendChild(option);
+  if (!voices.length) return;
+  const voiceSelect = document.getElementById("voiceSelect");
+  const prevValue = voiceSelect.value;
+  voiceSelect.innerHTML = "";
+
+  LANG_CONFIG.forEach(({ code, label, fallback }) => {
+    let matching = voices.filter(v => v.lang === code);
+    if (!matching.length && fallback) matching = voices.filter(fallback);
+    matching.forEach(voice => {
+      const option = document.createElement("option");
+      option.value = voices.indexOf(voice);
+      option.textContent = matching.length > 1 ? `${label} - ${voice.name}` : label;
+      voiceSelect.appendChild(option);
+    });
   });
-  selectedVoice = voices[0] ?? null;
+
+  if (prevValue && voiceSelect.querySelector(`option[value="${prevValue}"]`)) {
+    voiceSelect.value = prevValue;
+  } else {
+    const savedName = localStorage.getItem("voiceName");
+    const savedOption = savedName && Array.from(voiceSelect.options).find(opt => voices[opt.value]?.name === savedName);
+    if (savedOption) {
+      voiceSelect.value = savedOption.value;
+    } else {
+      const enGBOption = Array.from(voiceSelect.options).find(opt => voices[opt.value]?.lang === "en-GB");
+      if (enGBOption) voiceSelect.value = enGBOption.value;
+    }
+  }
+  selectedVoice = voices[voiceSelect.value] ?? voices[voiceSelect.options[0]?.value] ?? null;
+  if (selectedVoice) {
+    const prefix = selectedVoice.lang.split("-")[0];
+    currentLang = ttsToPokeApiLang[prefix] || prefix;
+  }
 }
 
 populateVoices();
 window.speechSynthesis.addEventListener("voiceschanged", populateVoices);
 
 document.getElementById("voiceSelect").addEventListener("change", (e) => {
-  selectedVoice = window.speechSynthesis.getVoices()[e.target.value];
+  const voices = window.speechSynthesis.getVoices();
+  selectedVoice = voices[e.target.value];
+  if (selectedVoice) {
+    localStorage.setItem("voiceName", selectedVoice.name);
+    const prefix = selectedVoice.lang.split("-")[0];
+    currentLang = ttsToPokeApiLang[prefix] || prefix;
+    if (currentId) fetchPokemon(currentId);
+  }
 });
 let volumeBarTimeout = null;
 
@@ -37,7 +87,7 @@ function showVolumeBar() {
 
 async function fetchPokemon(identifier) {
   try {
-    const res = await fetch(`/pokemon/${identifier}`);
+    const res = await fetch(`/pokemon/${identifier}?lang=${currentLang}`);
     if (!res.ok) throw new Error("Pokémon not found");
     const data = await res.json();
     displayPokemon(data);
@@ -129,11 +179,13 @@ document.getElementById("cryBtn").addEventListener("click", () => {
 
 document.getElementById("volDownBtn").addEventListener("click", () => {
   speechVolume = Math.max(0, parseFloat((speechVolume - 0.05).toFixed(2)));
+  localStorage.setItem("speechVolume", speechVolume);
   showVolumeBar();
 });
 
 document.getElementById("volUpBtn").addEventListener("click", () => {
   speechVolume = Math.min(1, parseFloat((speechVolume + 0.05).toFixed(2)));
+  localStorage.setItem("speechVolume", speechVolume);
   showVolumeBar();
 });
 

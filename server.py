@@ -1,18 +1,23 @@
 import re
 
 import requests
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
 PORT = 3000
 
 
-def build_pokemon_data(pokemon, species_data):
+def build_pokemon_data(pokemon, species_data, lang="en"):
     flavor_entry = next(
-        (e for e in species_data["flavor_text_entries"] if e["language"]["name"] == "en"),
+        (e for e in species_data["flavor_text_entries"] if e["language"]["name"] == lang),
         None,
     )
+    if not flavor_entry:
+        flavor_entry = next(
+            (e for e in species_data["flavor_text_entries"] if e["language"]["name"] == "en"),
+            None,
+        )
     description = (
         re.sub(r"[\n\f]", " ", flavor_entry["flavor_text"])
         if flavor_entry
@@ -61,7 +66,8 @@ def get_pokemon(identifier):
         species_res = requests.get(pokemon["species"]["url"])
         species_data = species_res.json()
 
-        return jsonify(build_pokemon_data(pokemon, species_data))
+        lang = request.args.get("lang", "en")
+        return jsonify(build_pokemon_data(pokemon, species_data, lang))
     except requests.RequestException as e:
         print(f"Request error: {e}")
         return jsonify({"error": "Failed to fetch Pokémon"}), 500
