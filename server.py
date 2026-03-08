@@ -1,3 +1,4 @@
+import os
 import re
 
 import requests
@@ -74,4 +75,5 @@ def get_pokemon(identifier):
 
 
 if __name__ == "__main__":
-    app.run(port=PORT, debug=True)
+    port = int(os.environ.get("PORT", PORT))
+    app.run(host="0.0.0.0", port=port, debug=False)
