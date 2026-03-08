@@ -18,6 +18,7 @@ let storage = (() => {
 })();
 let selectedBox = 0;      // which box is selected (0-9)
 let boxCursor = 0;        // position within selectedBox's pokemon list
+let boxEverSelected = false; // don't highlight until user has clicked a box
 
 function saveStorage() {
   localStorage.setItem("pokestorage_v2", JSON.stringify(storage));
@@ -26,7 +27,7 @@ function saveStorage() {
 function updateStorageUI() {
   document.querySelectorAll(".storage-box").forEach((box, i) => {
     box.classList.toggle("occupied", storage[i].length > 0);
-    box.classList.toggle("selected", i === selectedBox);
+    box.classList.toggle("selected", boxEverSelected && i === selectedBox);
   });
 }
 
@@ -307,6 +308,7 @@ document.querySelectorAll(".storage-box").forEach((box) => {
   box.addEventListener("click", () => {
     selectedBox = parseInt(box.dataset.slot);
     boxCursor = 0;
+    boxEverSelected = true;
     updateStorageUI();
     updateFavoriteBtn();
     showBoxView(selectedBox);

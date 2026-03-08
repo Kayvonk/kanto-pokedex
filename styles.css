@@ -301,6 +301,10 @@ body {
   background: #2288cc;
 }
 
+.storage-box.selected {
+  background: #2288cc;
+}
+
 .storage-box:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #0e3d5c;
