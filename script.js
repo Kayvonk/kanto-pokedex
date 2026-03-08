@@ -148,6 +148,23 @@ function populateVoices() {
 populateVoices();
 window.speechSynthesis.addEventListener("voiceschanged", populateVoices);
 
+// Polling fallback: Android Chrome and iOS Safari often don't fire voiceschanged
+// reliably, or return empty from getVoices() until async loading completes.
+const _voicePoll = setInterval(() => {
+  if (window.speechSynthesis.getVoices().length) {
+    populateVoices();
+    clearInterval(_voicePoll);
+  }
+}, 250);
+setTimeout(() => clearInterval(_voicePoll), 10000); // stop polling after 10s
+
+// iOS Safari: voices are gated behind a user gesture. On first touch, nudge
+// the API and re-attempt population after a short delay.
+document.addEventListener("touchstart", () => {
+  window.speechSynthesis.getVoices(); // triggers async load on iOS
+  setTimeout(populateVoices, 100);
+}, { once: true });
+
 document.getElementById("voiceSelect").addEventListener("change", (e) => {
   const voices = window.speechSynthesis.getVoices();
   selectedVoice = voices[e.target.value];
