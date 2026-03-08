@@ -126,6 +126,17 @@ function populateVoices() {
     });
   });
 
+  // Fallback: if no LANG_CONFIG voices matched (common on mobile with non-standard
+  // locale codes), add all available voices so the dropdown is never empty.
+  if (!voiceSelect.options.length) {
+    voices.forEach((voice, i) => {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = `${voice.name} (${voice.lang})`;
+      voiceSelect.appendChild(option);
+    });
+  }
+
   if (prevValue && voiceSelect.querySelector(`option[value="${prevValue}"]`)) {
     voiceSelect.value = prevValue;
   } else {
