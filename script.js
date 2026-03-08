@@ -1,6 +1,7 @@
 let currentId = null;
 let speechVolume = parseFloat(localStorage.getItem("speechVolume") ?? "0.3");
-let selectedVoice = null;
+let currentVoice = null;
+const isAndroid = /android/i.test(navigator.userAgent);
 let currentCryUrl = null;
 let currentLang = "en";
 let isShiny = false;
@@ -108,6 +109,31 @@ const LANG_CONFIG = [
   { code: "it-IT", label: "Italian" },
 ];
 
+// Language-only dropdown used on Android (voice switching is unreliable there)
+const LANG_DROPDOWN = [
+  { label: "English",  bcp47: "en-US", pokeApi: "en" },
+  { label: "French",   bcp47: "fr-FR", pokeApi: "fr" },
+  { label: "German",   bcp47: "de-DE", pokeApi: "de" },
+  { label: "Spanish",  bcp47: "es-ES", pokeApi: "es" },
+  { label: "Italian",  bcp47: "it-IT", pokeApi: "it" },
+  { label: "Japanese", bcp47: "ja-JP", pokeApi: "ja" },
+  { label: "Korean",   bcp47: "ko-KR", pokeApi: "ko" },
+];
+
+function populateLangSelect() {
+  const sel = document.getElementById("langSelect");
+  LANG_DROPDOWN.forEach(({ label, bcp47, pokeApi }) => {
+    const opt = document.createElement("option");
+    opt.value = pokeApi;
+    opt.dataset.bcp47 = bcp47;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  const saved = localStorage.getItem("currentLang");
+  if (saved && sel.querySelector(`option[value="${saved}"]`)) sel.value = saved;
+  currentLang = sel.value;
+}
+
 function populateVoices() {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return;
@@ -138,42 +164,57 @@ function populateVoices() {
       if (enGBOption) voiceSelect.value = enGBOption.value;
     }
   }
-  selectedVoice = voices[voiceSelect.value] ?? voices[voiceSelect.options[0]?.value] ?? null;
-  if (selectedVoice) {
-    const prefix = selectedVoice.lang.split("-")[0];
+  currentVoice = voices[voiceSelect.value] ?? voices[voiceSelect.options[0]?.value] ?? null;
+  if (currentVoice) {
+    const prefix = currentVoice.lang.split("-")[0];
     currentLang = ttsToPokeApiLang[prefix] || prefix;
   }
 }
 
-populateVoices();
-window.speechSynthesis.addEventListener("voiceschanged", populateVoices);
+// On Android voice switching is unreliable — show a language dropdown instead.
+// On all other platforms, populate the voice dropdown and wire up async loading.
+if (isAndroid) {
+  document.getElementById("voiceSelect").style.display = "none";
+  document.getElementById("langSelect").style.display = "";
+  populateLangSelect();
+} else {
+  document.getElementById("langSelect").style.display = "none";
+  populateVoices();
+  window.speechSynthesis.addEventListener("voiceschanged", populateVoices);
 
-// Polling fallback: Android Chrome and iOS Safari often don't fire voiceschanged
-// reliably, or return empty from getVoices() until async loading completes.
-const _voicePoll = setInterval(() => {
-  if (window.speechSynthesis.getVoices().length) {
-    populateVoices();
-    clearInterval(_voicePoll);
-  }
-}, 250);
-setTimeout(() => clearInterval(_voicePoll), 10000); // stop polling after 10s
+  // Polling fallback: Android Chrome and iOS Safari often don't fire voiceschanged
+  // reliably, or return empty from getVoices() until async loading completes.
+  const _voicePoll = setInterval(() => {
+    if (window.speechSynthesis.getVoices().length) {
+      populateVoices();
+      clearInterval(_voicePoll);
+    }
+  }, 250);
+  setTimeout(() => clearInterval(_voicePoll), 10000); // stop polling after 10s
 
-// iOS Safari: voices are gated behind a user gesture. On first touch, nudge
-// the API and re-attempt population after a short delay.
-document.addEventListener("touchstart", () => {
-  window.speechSynthesis.getVoices(); // triggers async load on iOS
-  setTimeout(populateVoices, 100);
-}, { once: true });
+  // iOS Safari: voices are gated behind a user gesture. On first touch, nudge
+  // the API and re-attempt population after a short delay.
+  document.addEventListener("touchstart", () => {
+    window.speechSynthesis.getVoices(); // triggers async load on iOS
+    setTimeout(populateVoices, 100);
+  }, { once: true });
+}
 
 document.getElementById("voiceSelect").addEventListener("change", (e) => {
   const voices = window.speechSynthesis.getVoices();
-  selectedVoice = voices[e.target.value];
-  if (selectedVoice) {
-    localStorage.setItem("voiceName", selectedVoice.name);
-    const prefix = selectedVoice.lang.split("-")[0];
+  currentVoice = voices[e.target.value];
+  if (currentVoice) {
+    localStorage.setItem("voiceName", currentVoice.name);
+    const prefix = currentVoice.lang.split("-")[0];
     currentLang = ttsToPokeApiLang[prefix] || prefix;
     if (currentId) fetchPokemon(currentId);
   }
+});
+
+document.getElementById("langSelect").addEventListener("change", (e) => {
+  currentLang = e.target.value;
+  localStorage.setItem("currentLang", currentLang);
+  if (currentId) fetchPokemon(currentId);
 });
 let volumeBarTimeout = null;
 
@@ -250,7 +291,8 @@ function displayPokemon(pokemon) {
   const makeUtterance = (text) => {
     const u = new SpeechSynthesisUtterance(text);
     u.volume = speechVolume;
-    if (selectedVoice) u.voice = selectedVoice;
+    u.lang = currentLang;
+    if (!isAndroid && currentVoice) u.voice = currentVoice;
     return u;
   };
 
