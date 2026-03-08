@@ -429,6 +429,7 @@ function isMobile() {
   return window.innerWidth <= 768;
 }
 
+
 document.querySelector(".nav-arrow-right").addEventListener("click", () => {
   if (isMobile()) pokedex.style.transform = "translateX(-50%)";
 });
