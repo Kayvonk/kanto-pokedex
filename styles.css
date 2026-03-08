@@ -120,6 +120,7 @@ body {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 5px 0 #1a1a1a;
 }
 
 #cryBtn::after {
@@ -133,6 +134,11 @@ body {
   border-radius: 50%;
   transform: rotate(-30deg);
   pointer-events: none;
+}
+
+#cryBtn:not(:disabled):active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #1a1a1a;
 }
 
 #cryBtn:disabled {
@@ -259,7 +265,7 @@ body {
   border-radius: 3px;
   background: #1a6fa8;
   border: 1px solid #0e4870;
-  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.15), 0 4px 0 #0a3655, 0 5px 4px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 0 #0e3d5c;
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
   position: relative;
@@ -271,7 +277,7 @@ body {
 
 .storage-box:active {
   transform: translateY(3px);
-  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1), 0 1px 0 #0a3655, 0 2px 2px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 0 #0e3d5c;
 }
 
 .storage-box.occupied {
@@ -292,12 +298,12 @@ body {
   background-color: #bbb;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 0 #888, 0 5px 4px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 0 #888;
 }
 
 .menu-nav-row button:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 #888, 0 2px 2px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 0 #888;
 }
 
 #favoriteBtn {
@@ -490,6 +496,7 @@ body {
   width: 100%;
   height: 100%;
   z-index: 0;
+  filter: drop-shadow(0 6px 0 #aaa);
 }
 
 /* INNER SCREEN (now positioned instead of padded) */
@@ -574,6 +581,7 @@ body {
   color: white;
   overflow-y: scroll;
   scrollbar-width: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .info-screen::-webkit-scrollbar {
