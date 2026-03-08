@@ -339,11 +339,11 @@ document.getElementById("favoriteBtn").addEventListener("click", () => {
 
 // Storage prev/next buttons — change which box is selected
 document.getElementById("storagePrevBtn").addEventListener("click", () => {
-  if (selectedBox > 0) { selectedBox--; boxCursor = 0; boxEverSelected = true; updateStorageUI(); updateFavoriteBtn(); }
+  if (selectedBox > 0) { selectedBox--; boxCursor = 0; boxEverSelected = true; updateStorageUI(); updateFavoriteBtn(); showBoxView(selectedBox); }
 });
 
 document.getElementById("storageNextBtn").addEventListener("click", () => {
-  if (selectedBox < STORAGE_SIZE - 1) { selectedBox++; boxCursor = 0; boxEverSelected = true; updateStorageUI(); updateFavoriteBtn(); }
+  if (selectedBox < STORAGE_SIZE - 1) { selectedBox++; boxCursor = 0; boxEverSelected = true; updateStorageUI(); updateFavoriteBtn(); showBoxView(selectedBox); }
 });
 
 // prevBtn/nextBtn — cycle through pokemon within the selected box
