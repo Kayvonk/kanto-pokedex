@@ -103,7 +103,7 @@ function displayPokemon(pokemon) {
   img.src = pokemon.sprites?.official?.default || pokemon.sprites?.front_default || "";
   img.alt = pokemon.name;
   img.style.display = "block";
-  document.getElementById("pokemonName").textContent = pokemon.name;
+  document.getElementById("pokemonName").textContent = pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1);
   document.getElementById("pokemonDescription").textContent = pokemon.description;
   const camera = document.querySelector(".camera");
   camera.classList.remove("flash");
@@ -151,8 +151,8 @@ function displayPokemon(pokemon) {
   window.speechSynthesis.speak(nameUtterance);
   document.getElementById("pokemonId").textContent = `#${pokemon.id}`;
   document.getElementById("pokemonType").textContent = pokemon.types.join(", ");
-  document.getElementById("pokemonHeight").textContent = pokemon.height;
-  document.getElementById("pokemonWeight").textContent = pokemon.weight;
+  document.getElementById("pokemonHeight").textContent = `Height: ${(pokemon.height / 10).toFixed(1)} m`;
+  document.getElementById("pokemonWeight").textContent = `Weight: ${(pokemon.weight / 10).toFixed(1)} kg`;
   currentCryUrl = pokemon.cry ?? null;
   document.getElementById("cryBtn").disabled = !currentCryUrl;
 }
@@ -195,6 +195,23 @@ document.getElementById("prevBtn").addEventListener("click", () => {
 
 document.getElementById("nextBtn").addEventListener("click", () => {
   if (currentId) fetchPokemon(currentId + 1);
+});
+
+document.getElementById("dpadLeft").addEventListener("click", () => {
+  if (currentId && currentId > 1) fetchPokemon(currentId - 1);
+});
+
+document.getElementById("dpadRight").addEventListener("click", () => {
+  if (currentId) fetchPokemon(currentId + 1);
+});
+
+document.getElementById("dpadUp").addEventListener("click", () => {
+  if (currentId && currentId > 10) fetchPokemon(currentId - 10);
+  else if (currentId) fetchPokemon(1);
+});
+
+document.getElementById("dpadDown").addEventListener("click", () => {
+  if (currentId) fetchPokemon(currentId + 10);
 });
 
 // Mobile panel navigation

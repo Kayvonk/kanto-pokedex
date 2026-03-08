@@ -77,13 +77,26 @@
               <button id="searchBtn">Search</button>
             </div>
 
-            <div class="voice-select-wrapper">
-              <select id="voiceSelect"></select>
-            </div>
-
-            <div class="volume-controls">
-              <button id="volDownBtn">&#x1F50A;−</button>
-              <button id="volUpBtn">&#x1F50A;+</button>
+            <div class="bottom-controls">
+              <div class="bottom-left">
+                <div class="bottom-row1">
+                  <button id="cryBtn" title="Play Pokémon cry"></button>
+                  <button id="volDownBtn">&#x1F50A;−</button>
+                  <button id="volUpBtn">&#x1F50A;+</button>
+                </div>
+                <div class="bottom-row2">
+                  <select id="voiceSelect"></select>
+                </div>
+              </div>
+              <div class="bottom-right">
+                <div class="dpad">
+                  <button class="dpad-btn dpad-up" id="dpadUp"></button>
+                  <button class="dpad-btn dpad-left" id="dpadLeft"></button>
+                  <div class="dpad-center"><div class="dpad-center-dot"></div></div>
+                  <button class="dpad-btn dpad-right" id="dpadRight"></button>
+                  <button class="dpad-btn dpad-down" id="dpadDown"></button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -120,21 +133,16 @@
               <p id="pokemonDescription">---</p>
               <p><strong>ID:</strong> <span id="pokemonId">---</span></p>
               <p><strong>Type:</strong> <span id="pokemonType">---</span></p>
-              <p>
-                <strong>Height:</strong> <span id="pokemonHeight">---</span>
-              </p>
-              <p>
-                <strong>Weight:</strong> <span id="pokemonWeight">---</span>
-              </p>
             </div>
             
             <div class="menu-buttons">
-              <div class="cry-btn-row">
-                <button id="cryBtn" title="Play Pokémon cry"></button>
-              </div>
               <div class="menu-nav-row">
                 <button id="prevBtn">Previous</button>
                 <button id="nextBtn">Next</button>
+              </div>
+              <div class="menu-stat-row">
+                <div class="stat-box" id="pokemonHeight"></div>
+                <div class="stat-box" id="pokemonWeight"></div>
               </div>
             </div>
           </div>
