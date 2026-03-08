@@ -58,7 +58,7 @@ body {
 .pokedex {
   display: flex;
   width: 900px;
-  height: 800px;
+  height: 700px;
   perspective: 1200px;
   perspective-origin: center center;
 }
@@ -67,7 +67,7 @@ body {
 .left-panel {
   flex: 1;
   border-radius: 25px 0 0 25px;
-  padding: 30px;
+  padding: 25px;
   position: relative;
   isolation: isolate;
   display: flex;
@@ -81,6 +81,7 @@ body {
   flex-direction: column;
   width: 100%;
   align-items: center;
+  justify-content: center;
   animation: revealContent 1.4s 0.2s both;
 }
 
@@ -96,7 +97,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .bottom-row1 {
@@ -110,13 +111,28 @@ body {
 }
 
 #cryBtn {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #111;
+  background: #333;
   border: none;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+#cryBtn::after {
+  content: '';
+  position: absolute;
+  top: 18%;
+  left: 18%;
+  width: 36%;
+  height: 24%;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
 }
 
 #cryBtn:disabled {
@@ -224,27 +240,102 @@ body {
   margin-top: 15px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 18px;
+  width: 280px;
 }
 
+.storage-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 56px);
+  grid-template-rows: repeat(2, 30px);
+  gap: 0;
+  margin-top: 15px;
+}
+
+.storage-box {
+  width: 56px;
+  height: 30px;
+  border-radius: 3px;
+  background: #1a6fa8;
+  border: 1px solid #0e4870;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.15), 0 4px 0 #0a3655, 0 5px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+
+.storage-box:hover {
+  background: #2288cc;
+}
+
+.storage-box:active {
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1), 0 1px 0 #0a3655, 0 2px 2px rgba(0,0,0,0.2);
+}
+
+.storage-box.occupied {
+  background: #0d4f7a;
+}
+
+.menu-nav-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  width: 100%;
+}
 
 .menu-nav-row button {
-  width: 120px;
-  padding: 10px;
-  border-radius: 8px;
-  background-color: #222;
-  color: white;
+  width: 56px;
+  height: 30px;
+  border-radius: 3px;
+  background-color: #bbb;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #888, 0 5px 4px rgba(0,0,0,0.3);
+}
+
+.menu-nav-row button:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #888, 0 2px 2px rgba(0,0,0,0.2);
+}
+
+#favoriteBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #f4c430;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  margin-left: auto;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+#favoriteBtn::after {
+  content: '';
+  position: absolute;
+  top: 16%;
+  left: 16%;
+  width: 38%;
+  height: 26%;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
 }
 
 .menu-stat-row {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .stat-box {
-  width: 120px;
-  height: 36px;
+  width: 130px;
+  height: 44px;
   flex-shrink: 0;
   border-radius: 8px;
   background-color: #222;
@@ -260,12 +351,12 @@ body {
 .right-panel {
   flex: 1;
   border-radius: 0 25px 25px 0;
-  padding: 30px;
-  padding-top: 220px;
+  padding: 25px;
+  padding-top: 125px;
   position: relative;
   isolation: isolate;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   overflow: hidden;
   transform-origin: left center;
@@ -306,6 +397,21 @@ body {
   border-radius: 50%;
   border: 5px solid white;
   transition: background 0.1s, box-shadow 0.1s;
+  position: relative;
+  overflow: hidden;
+}
+
+.camera::after {
+  content: '';
+  position: absolute;
+  top: 16%;
+  left: 16%;
+  width: 38%;
+  height: 26%;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
 }
 
 .camera.flash {
@@ -324,6 +430,23 @@ body {
   width: 15px;
   height: 15px;
   border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+
+.light::after {
+  content: '';
+  position: absolute;
+  top: 18%;
+  left: 18%;
+  width: 38%;
+  height: 26%;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
 }
 
 .red {
@@ -340,11 +463,13 @@ body {
 
 /* LEFT PANEL BOTTOM CONTAINER */
 .left-panel-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  margin-top: 20%;
+  justify-content: center;
+  gap: 15px;
+  padding-top: 50px;
 }
 
 /* ========================= */
@@ -468,6 +593,16 @@ body {
   margin-bottom: 15px;
 }
 
+.info-screen #pokemonDescription {
+  margin-bottom: 10px;
+}
+
+.info-screen p:has(#pokemonId),
+.info-screen p:has(#pokemonType) {
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
 /* Nav arrows hidden on desktop */
 .nav-arrow {
   display: none;
@@ -523,6 +658,10 @@ body {
     animation: none;
     justify-content: center;
     height: 100%;
+  }
+
+  .info-screen {
+    margin-top: 100px;
   }
 
   .hinge {

@@ -109,25 +109,22 @@ function displayPokemon(pokemon) {
   camera.classList.remove("flash");
   window.speechSynthesis.cancel();
 
-  const flashTimers = [];
+  let flashInterval = null;
 
   const stopFlash = () => {
-    flashTimers.forEach(clearTimeout);
-    flashTimers.length = 0;
+    if (flashInterval) {
+      clearInterval(flashInterval);
+      flashInterval = null;
+    }
     camera.classList.remove("flash");
   };
 
-  const scheduleWordFlashes = (words) => {
-    let elapsed = 0;
-    words.forEach(word => {
-      const t = setTimeout(() => {
-        camera.classList.add("flash");
-        setTimeout(() => camera.classList.remove("flash"), 140);
-      }, elapsed);
-      flashTimers.push(t);
-      const charCount = word.replace(/\W/g, "").length || 1;
-      elapsed += Math.max(180, charCount * 55) + 70;
-    });
+  const startFlash = () => {
+    stopFlash();
+    flashInterval = setInterval(() => {
+      camera.classList.add("flash");
+      setTimeout(() => camera.classList.remove("flash"), 140);
+    }, 320);
   };
 
   const makeUtterance = (text) => {
@@ -138,11 +135,11 @@ function displayPokemon(pokemon) {
   };
 
   const nameUtterance = makeUtterance(pokemon.name);
-  nameUtterance.onstart = () => scheduleWordFlashes(pokemon.name.split(/\s+/));
+  nameUtterance.onstart = startFlash;
   nameUtterance.onerror = stopFlash;
   nameUtterance.onend = () => {
     const descUtterance = makeUtterance(pokemon.description);
-    descUtterance.onstart = () => scheduleWordFlashes(pokemon.description.split(/\s+/));
+    descUtterance.onstart = startFlash;
     descUtterance.onend = stopFlash;
     descUtterance.onerror = stopFlash;
     window.speechSynthesis.speak(descUtterance);
@@ -189,13 +186,7 @@ document.getElementById("volUpBtn").addEventListener("click", () => {
   showVolumeBar();
 });
 
-document.getElementById("prevBtn").addEventListener("click", () => {
-  if (currentId && currentId > 1) fetchPokemon(currentId - 1);
-});
-
-document.getElementById("nextBtn").addEventListener("click", () => {
-  if (currentId) fetchPokemon(currentId + 1);
-});
+// prevBtn and nextBtn reserved for storage box navigation
 
 document.getElementById("dpadLeft").addEventListener("click", () => {
   if (currentId && currentId > 1) fetchPokemon(currentId - 1);

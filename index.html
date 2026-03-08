@@ -68,15 +68,6 @@
               </div>
             </div>
 
-            <div class="controls">
-              <input
-                type="text"
-                id="pokemonInput"
-                placeholder="Enter name or ID"
-              />
-              <button id="searchBtn">Search</button>
-            </div>
-
             <div class="bottom-controls">
               <div class="bottom-left">
                 <div class="bottom-row1">
@@ -97,6 +88,15 @@
                   <button class="dpad-btn dpad-down" id="dpadDown"></button>
                 </div>
               </div>
+            </div>
+
+            <div class="controls">
+              <input
+                type="text"
+                id="pokemonInput"
+                placeholder="Enter name or ID"
+              />
+              <button id="searchBtn">Search</button>
             </div>
           </div>
         </div>
@@ -134,11 +134,25 @@
               <p><strong>ID:</strong> <span id="pokemonId">---</span></p>
               <p><strong>Type:</strong> <span id="pokemonType">---</span></p>
             </div>
-            
+
+            <div class="storage-grid" id="storageGrid">
+              <div class="storage-box" data-slot="0"></div>
+              <div class="storage-box" data-slot="1"></div>
+              <div class="storage-box" data-slot="2"></div>
+              <div class="storage-box" data-slot="3"></div>
+              <div class="storage-box" data-slot="4"></div>
+              <div class="storage-box" data-slot="5"></div>
+              <div class="storage-box" data-slot="6"></div>
+              <div class="storage-box" data-slot="7"></div>
+              <div class="storage-box" data-slot="8"></div>
+              <div class="storage-box" data-slot="9"></div>
+            </div>
+
             <div class="menu-buttons">
               <div class="menu-nav-row">
-                <button id="prevBtn">Previous</button>
-                <button id="nextBtn">Next</button>
+                <button id="prevBtn"></button>
+                <button id="nextBtn"></button>
+                <button id="favoriteBtn" aria-label="Favorite"></button>
               </div>
               <div class="menu-stat-row">
                 <div class="stat-box" id="pokemonHeight"></div>
