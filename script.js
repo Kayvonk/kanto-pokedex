@@ -3,7 +3,6 @@ let speechVolume = parseFloat(localStorage.getItem("speechVolume") ?? "0.3");
 let selectedVoice = null;
 let currentCryUrl = null;
 let currentLang = "en";
-const voiceMap = new Map(); // name → SpeechSynthesisVoice, populated at load time
 let isShiny = false;
 let currentSprites = null;
 
@@ -112,13 +111,8 @@ const LANG_CONFIG = [
 function populateVoices() {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return;
-
-  // Cache voice objects by name so the change handler never needs to re-call getVoices()
-  voiceMap.clear();
-  voices.forEach(v => voiceMap.set(v.name, v));
-
   const voiceSelect = document.getElementById("voiceSelect");
-  const prevValue = voiceSelect.value; // now a voice name, not an index
+  const prevValue = voiceSelect.value;
   voiceSelect.innerHTML = "";
 
   LANG_CONFIG.forEach(({ code, label, fallback }) => {
@@ -126,66 +120,54 @@ function populateVoices() {
     if (!matching.length && fallback) matching = voices.filter(fallback);
     matching.forEach(voice => {
       const option = document.createElement("option");
-      option.value = voice.name; // name is stable across getVoices() calls
+      option.value = voices.indexOf(voice);
       option.textContent = matching.length > 1 ? `${label} - ${voice.name}` : label;
       voiceSelect.appendChild(option);
     });
   });
 
-  // Fallback: if no LANG_CONFIG voices matched (common on mobile with non-standard
-  // locale codes), add all available voices so the dropdown is never empty.
-  if (!voiceSelect.options.length) {
-    voices.forEach(voice => {
-      const option = document.createElement("option");
-      option.value = voice.name;
-      option.textContent = `${voice.name} (${voice.lang})`;
-      voiceSelect.appendChild(option);
-    });
-  }
-
   if (prevValue && voiceSelect.querySelector(`option[value="${prevValue}"]`)) {
     voiceSelect.value = prevValue;
   } else {
     const savedName = localStorage.getItem("voiceName");
-    const savedOption = savedName && Array.from(voiceSelect.options).find(opt => opt.value === savedName);
+    const savedOption = savedName && Array.from(voiceSelect.options).find(opt => voices[opt.value]?.name === savedName);
     if (savedOption) {
       voiceSelect.value = savedOption.value;
     } else {
-      const enGBOption = Array.from(voiceSelect.options).find(opt => voiceMap.get(opt.value)?.lang === "en-GB");
+      const enGBOption = Array.from(voiceSelect.options).find(opt => voices[opt.value]?.lang === "en-GB");
       if (enGBOption) voiceSelect.value = enGBOption.value;
     }
   }
-  selectedVoice = voiceMap.get(voiceSelect.value) ?? voiceMap.get(voiceSelect.options[0]?.value) ?? null;
+  selectedVoice = voices[voiceSelect.value] ?? voices[voiceSelect.options[0]?.value] ?? null;
   if (selectedVoice) {
     const prefix = selectedVoice.lang.split("-")[0];
     currentLang = ttsToPokeApiLang[prefix] || prefix;
   }
 }
 
-if (window.speechSynthesis) {
-  populateVoices();
-  window.speechSynthesis.addEventListener("voiceschanged", populateVoices);
+populateVoices();
+window.speechSynthesis.addEventListener("voiceschanged", populateVoices);
 
-  // Polling fallback: Android Chrome and iOS Safari often don't fire voiceschanged
-  // reliably, or return empty from getVoices() until async loading completes.
-  const _voicePoll = setInterval(() => {
-    if (window.speechSynthesis.getVoices().length) {
-      populateVoices();
-      clearInterval(_voicePoll);
-    }
-  }, 250);
-  setTimeout(() => clearInterval(_voicePoll), 10000); // stop polling after 10s
+// Polling fallback: Android Chrome and iOS Safari often don't fire voiceschanged
+// reliably, or return empty from getVoices() until async loading completes.
+const _voicePoll = setInterval(() => {
+  if (window.speechSynthesis.getVoices().length) {
+    populateVoices();
+    clearInterval(_voicePoll);
+  }
+}, 250);
+setTimeout(() => clearInterval(_voicePoll), 10000); // stop polling after 10s
 
-  // iOS Safari: voices are gated behind a user gesture. On first touch, nudge
-  // the API and re-attempt population after a short delay.
-  document.addEventListener("touchstart", () => {
-    window.speechSynthesis.getVoices(); // triggers async load on iOS
-    setTimeout(populateVoices, 100);
-  }, { once: true });
-}
+// iOS Safari: voices are gated behind a user gesture. On first touch, nudge
+// the API and re-attempt population after a short delay.
+document.addEventListener("touchstart", () => {
+  window.speechSynthesis.getVoices(); // triggers async load on iOS
+  setTimeout(populateVoices, 100);
+}, { once: true });
 
 document.getElementById("voiceSelect").addEventListener("change", (e) => {
-  selectedVoice = voiceMap.get(e.target.value) || null;
+  const voices = window.speechSynthesis.getVoices();
+  selectedVoice = voices[e.target.value];
   if (selectedVoice) {
     localStorage.setItem("voiceName", selectedVoice.name);
     const prefix = selectedVoice.lang.split("-")[0];
@@ -268,11 +250,7 @@ function displayPokemon(pokemon) {
   const makeUtterance = (text) => {
     const u = new SpeechSynthesisUtterance(text);
     u.volume = speechVolume;
-    if (selectedVoice) {
-      // iOS Safari requires a fresh voice object at speech time — stored objects go stale
-      const freshVoice = window.speechSynthesis.getVoices().find(v => v.name === selectedVoice.name);
-      u.voice = freshVoice ?? selectedVoice;
-    }
+    if (selectedVoice) u.voice = selectedVoice;
     return u;
   };
 
@@ -428,7 +406,6 @@ const pokedex = document.querySelector(".pokedex");
 function isMobile() {
   return window.innerWidth <= 768;
 }
-
 
 document.querySelector(".nav-arrow-right").addEventListener("click", () => {
   if (isMobile()) pokedex.style.transform = "translateX(-50%)";
