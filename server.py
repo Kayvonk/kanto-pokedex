@@ -119,12 +119,21 @@ def detect_pokemon():
         return jsonify({"error": f"Vision API error: {msg[:120]}"}), 502
 
     raw = response.text.strip().lower()
-    slug = re.sub(r"[^a-z0-9\-]", "", raw)
 
-    if not slug or slug == "none":
+    if not raw or raw == "none":
         return jsonify({"error": "No Pokemon detected"}), 404
 
-    return jsonify({"pokemon": slug})
+    # Sanitize to a valid PokeAPI slug and look up the real ID
+    slug = re.sub(r"[^a-z0-9\-]", "", raw.replace(" ", "-").replace(".", "").replace("'", ""))
+
+    try:
+        poke_res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{slug}", timeout=5)
+        if poke_res.ok:
+            return jsonify({"pokemon": poke_res.json()["id"]})
+    except requests.RequestException:
+        pass
+
+    return jsonify({"error": f"Could not find '{slug}' in Pokedex"}), 404
 
 
 if __name__ == "__main__":
