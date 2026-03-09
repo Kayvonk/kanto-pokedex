@@ -460,3 +460,134 @@ document.querySelector(".nav-arrow-left").addEventListener("click", () => {
 window.addEventListener("resize", () => {
   if (!isMobile()) pokedex.style.transform = "";
 });
+
+// ========================= //
+// WEBCAM POKEMON SCANNER    //
+// ========================= //
+
+(function () {
+  let mediaStream = null;
+
+  const modal     = document.getElementById("cameraModal");
+  const closeBtn  = document.getElementById("cameraModalClose");
+  const video     = document.getElementById("cameraFeed");
+  const canvas    = document.getElementById("cameraCanvas");
+  const scanBtn   = document.getElementById("scanBtn");
+  const statusEl  = document.getElementById("cameraStatus");
+  const scanLine  = document.getElementById("scanLine");
+  const cameraBtn = document.querySelector(".camera");
+
+  function setStatus(msg, isError = false) {
+    statusEl.textContent = msg;
+    statusEl.className = "camera-status" + (isError ? " error" : "");
+  }
+
+  function setScanningState(scanning) {
+    scanBtn.disabled = scanning;
+    scanBtn.textContent = scanning ? "SCANNING..." : "SCAN";
+    scanLine.style.display = scanning ? "block" : "none";
+    video.style.display = scanning ? "none" : "block";
+    canvas.style.display = scanning ? "block" : "none";
+  }
+
+  // Try to get rear camera via enumerateDevices (fixes iOS + Android facingMode bugs)
+  async function getRearCameraStream() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter((d) => d.kind === "videoinput");
+    const rear = videoDevices.find((d) => /back|rear|environment/i.test(d.label));
+    const constraints = rear
+      ? { video: { deviceId: { exact: rear.deviceId } }, audio: false }
+      : { video: { facingMode: "environment" }, audio: false };
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  async function openModal() {
+    modal.style.display = "flex";
+    setStatus("INITIALIZING CAMERA...");
+    setScanningState(false);
+    video.style.display = "block";
+    canvas.style.display = "none";
+
+    try {
+      mediaStream = await getRearCameraStream();
+      video.srcObject = mediaStream;
+      await video.play();
+      setStatus("AIM AT A POKEMON AND PRESS SCAN");
+    } catch (err) {
+      const denied = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+      const missing = err.name === "NotFoundError";
+      setStatus(denied ? "CAMERA ACCESS DENIED" : missing ? "NO CAMERA FOUND" : "CAMERA ERROR: " + err.name, true);
+      scanBtn.disabled = true;
+    }
+  }
+
+  function closeModal() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((t) => t.stop());
+      mediaStream = null;
+    }
+    video.srcObject = null;
+    modal.style.display = "none";
+    setStatus("");
+    setScanningState(false);
+  }
+
+  function captureFrame() {
+    // 320x240 is sufficient for Gemini Vision and avoids iOS canvas slowness
+    canvas.width = 320;
+    canvas.height = 240;
+    canvas.getContext("2d").drawImage(video, 0, 0, 320, 240);
+  }
+
+  function getImageBlob() {
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.7));
+  }
+
+  async function runScan() {
+    captureFrame();
+    setScanningState(true);
+    setStatus("SCANNING...");
+
+    try {
+      const blob = await getImageBlob();
+      const form = new FormData();
+      form.append("image", blob, "scan.jpg");
+
+      const res = await fetch("/detect-pokemon", { method: "POST", body: form });
+
+      if (res.status === 404) {
+        setStatus("NO POKEMON DETECTED", true);
+        setScanningState(false);
+        video.style.display = "block";
+        canvas.style.display = "none";
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      setStatus("DETECTED: " + data.pokemon.toUpperCase());
+
+      setTimeout(async () => {
+        closeModal();
+        await fetchPokemon(data.pokemon);
+      }, 900);
+    } catch (err) {
+      setStatus("SCAN FAILED: " + err.message, true);
+      setScanningState(false);
+      video.style.display = "block";
+      canvas.style.display = "none";
+    }
+  }
+
+  cameraBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  scanBtn.addEventListener("click", runScan);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.style.display !== "none") closeModal();
+  });
+})();

@@ -825,3 +825,180 @@ body {
     transform: translateY(-50%);
   }
 }
+
+/* ========================= */
+/* WEBCAM POKEMON SCANNER    */
+/* ========================= */
+
+.camera {
+  cursor: pointer;
+}
+.camera:hover {
+  box-shadow: 0 0 12px 4px rgba(0, 180, 216, 0.7);
+}
+
+.camera-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-modal-inner {
+  background: #1a2e1a;
+  border: 4px solid #4a7c59;
+  border-radius: 8px;
+  padding: 16px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  position: relative;
+  overflow: hidden;
+}
+
+.camera-modal-inner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.15) 3px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+.camera-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.camera-modal-title {
+  font-family: 'EarlyGameBoy', monospace;
+  font-size: 9px;
+  color: #7cfc7c;
+  letter-spacing: 2px;
+}
+
+.camera-modal-close {
+  background: none;
+  border: 1px solid #4a7c59;
+  color: #7cfc7c;
+  font-family: 'EarlyGameBoy', monospace;
+  font-size: 9px;
+  padding: 3px 7px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.camera-modal-close:hover {
+  background: #4a7c59;
+}
+
+.camera-viewfinder {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#cameraFeed,
+#cameraCanvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.viewfinder-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: #7cfc7c;
+  border-style: solid;
+}
+.corner.tl { top: 8px;    left: 8px;   border-width: 3px 0 0 3px; }
+.corner.tr { top: 8px;    right: 8px;  border-width: 3px 3px 0 0; }
+.corner.bl { bottom: 8px; left: 8px;   border-width: 0 0 3px 3px; }
+.corner.br { bottom: 8px; right: 8px;  border-width: 0 3px 3px 0; }
+
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(124, 252, 124, 0.7);
+  box-shadow: 0 0 8px 2px rgba(124, 252, 124, 0.5);
+  z-index: 6;
+  animation: scanSweep 1.4s linear infinite;
+}
+
+@keyframes scanSweep {
+  from { top: 0%; }
+  to   { top: 100%; }
+}
+
+.camera-status {
+  font-family: 'EarlyGameBoy', monospace;
+  font-size: 8px;
+  color: #7cfc7c;
+  min-height: 20px;
+  text-align: center;
+  margin-top: 10px;
+  letter-spacing: 1px;
+  word-break: break-word;
+}
+.camera-status.error {
+  color: #ff6b6b;
+}
+
+.camera-modal-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.scan-btn {
+  font-family: 'EarlyGameBoy', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  background: #222;
+  color: #7cfc7c;
+  border: 2px solid #4a7c59;
+  border-radius: 4px;
+  padding: 8px 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #0e1a0e;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.scan-btn:hover:not(:disabled) {
+  background: #2a3e2a;
+}
+.scan-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #0e1a0e;
+}
+.scan-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 768px) {
+  .camera-modal-inner {
+    width: calc(100vw - 32px);
+  }
+}

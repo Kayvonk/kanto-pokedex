@@ -1,8 +1,12 @@
 import os
 import re
 
+import google.generativeai as genai
 import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, send_from_directory, request
+
+load_dotenv()
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
@@ -72,6 +76,48 @@ def get_pokemon(identifier):
     except requests.RequestException as e:
         print(f"Request error: {e}")
         return jsonify({"error": "Failed to fetch Pokémon"}), 500
+
+
+@app.post("/detect-pokemon")
+def detect_pokemon():
+    if "image" not in request.files:
+        return jsonify({"error": "Missing image"}), 400
+
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        return jsonify({"error": "GOOGLE_API_KEY not configured"}), 500
+
+    image_bytes = request.files["image"].read()
+
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.0-flash")
+
+    prompt = (
+        "You are a Pokemon identification expert. "
+        "Examine this image carefully. "
+        "If you can see a Pokemon (in any form: a physical card, a game screen, a toy, a drawing, or a real-world depiction), "
+        "respond with ONLY the Pokemon's name as a single lowercase word or hyphenated slug exactly as used in the PokeAPI. "
+        "Examples of valid responses: pikachu, bulbasaur, mr-mime, ho-oh, porygon-z, jangmo-o. "
+        "If there is no Pokemon visible in the image, respond with exactly the word: none. "
+        "Do not include any other text, punctuation, explanation, or newlines in your response."
+    )
+
+    try:
+        response = model.generate_content(
+            [{"mime_type": "image/jpeg", "data": image_bytes}, prompt],
+            generation_config={"max_output_tokens": 32},
+        )
+    except Exception as e:
+        print(f"Gemini API error: {e}")
+        return jsonify({"error": "Vision API error"}), 502
+
+    raw = response.text.strip().lower()
+    slug = re.sub(r"[^a-z0-9\-]", "", raw)
+
+    if not slug or slug == "none":
+        return jsonify({"error": "No Pokemon detected"}), 404
+
+    return jsonify({"pokemon": slug})
 
 
 if __name__ == "__main__":
