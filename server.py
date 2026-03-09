@@ -118,7 +118,11 @@ def detect_pokemon():
             return jsonify({"error": "API quota exceeded — enable billing at console.cloud.google.com"}), 502
         return jsonify({"error": f"Vision API error: {msg[:120]}"}), 502
 
-    raw = response.text.strip().lower()
+    try:
+        raw = response.text.strip().lower()
+    except Exception as e:
+        print(f"Gemini response read error: {e}")
+        return jsonify({"error": "No readable response from vision model"}), 502
 
     if not raw or raw == "none":
         return jsonify({"error": "No Pokemon detected"}), 404

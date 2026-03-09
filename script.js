@@ -490,14 +490,22 @@ window.addEventListener("resize", () => {
     canvas.style.display = scanning ? "block" : "none";
   }
 
-  // Try to get rear camera via enumerateDevices (fixes iOS + Android facingMode bugs)
+  const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // Try to get rear camera via enumerateDevices (fixes iOS + Android facingMode bugs).
+  // On desktop, facingMode:"environment" causes NotReadableError — use plain video:true instead.
   async function getRearCameraStream() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter((d) => d.kind === "videoinput");
     const rear = videoDevices.find((d) => /back|rear|environment/i.test(d.label));
-    const constraints = rear
-      ? { video: { deviceId: { exact: rear.deviceId } }, audio: false }
-      : { video: { facingMode: "environment" }, audio: false };
+    let constraints;
+    if (rear) {
+      constraints = { video: { deviceId: { exact: rear.deviceId } }, audio: false };
+    } else if (isMobileDevice) {
+      constraints = { video: { facingMode: "environment" }, audio: false };
+    } else {
+      constraints = { video: true, audio: false };
+    }
     return navigator.mediaDevices.getUserMedia(constraints);
   }
 
@@ -540,7 +548,9 @@ window.addEventListener("resize", () => {
   }
 
   function getImageBlob() {
-    return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.7));
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Frame capture failed")), "image/jpeg", 0.7)
+    );
   }
 
   async function runScan() {
@@ -564,12 +574,12 @@ window.addEventListener("resize", () => {
       }
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
         throw new Error(err.error || `HTTP ${res.status}`);
       }
 
       const data = await res.json();
-      setStatus("DETECTED: " + data.pokemon.toUpperCase());
+      setStatus("DETECTED: #" + data.pokemon);
 
       setTimeout(async () => {
         closeModal();
