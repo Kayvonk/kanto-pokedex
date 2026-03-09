@@ -1,10 +1,11 @@
 import os
 import re
 
-import google.generativeai as genai
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, send_from_directory, request
+from google import genai
+from google.genai import types
 
 load_dotenv()
 
@@ -89,8 +90,7 @@ def detect_pokemon():
 
     image_bytes = request.files["image"].read()
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    client = genai.Client(api_key=api_key)
 
     prompt = (
         "You are a Pokemon identification expert. "
@@ -103,13 +103,20 @@ def detect_pokemon():
     )
 
     try:
-        response = model.generate_content(
-            [{"mime_type": "image/jpeg", "data": image_bytes}, prompt],
-            generation_config={"max_output_tokens": 32},
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+                prompt,
+            ],
+            config=types.GenerateContentConfig(max_output_tokens=32),
         )
     except Exception as e:
         print(f"Gemini API error: {e}")
-        return jsonify({"error": "Vision API error"}), 502
+        msg = str(e)
+        if "RESOURCE_EXHAUSTED" in msg or "quota" in msg.lower():
+            return jsonify({"error": "API quota exceeded — enable billing at console.cloud.google.com"}), 502
+        return jsonify({"error": f"Vision API error: {msg[:120]}"}), 502
 
     raw = response.text.strip().lower()
     slug = re.sub(r"[^a-z0-9\-]", "", raw)
