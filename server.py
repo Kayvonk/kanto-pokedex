@@ -59,10 +59,22 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
         if flavor_entry
         else "No description available"
     )
+    name_entry = next(
+        (e for e in species_data.get("names", []) if e["language"]["name"] == lang),
+        None,
+    )
+    if not name_entry:
+        name_entry = next(
+            (e for e in species_data.get("names", []) if e["language"]["name"] == "en"),
+            None,
+        )
+    display_name = (
+        name_entry["name"] if name_entry else pokemon["name"].replace("-", " ").title()
+    )
     return {
         "id": pokemon["id"],
         "name": pokemon["name"],
-        "display_name": pokemon["name"].replace("-", " ").title(),
+        "display_name": display_name,
         "description": description,
         "sprites": {
             "front_default": pokemon["sprites"]["front_default"],
