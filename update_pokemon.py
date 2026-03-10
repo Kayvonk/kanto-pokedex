@@ -19,6 +19,9 @@ load_dotenv()
 POKEMON_FILE = "pokemon.json"
 POKEAPI_LIST = "https://pokeapi.co/api/v2/pokemon?limit=10000"
 BATCH_SIZE = 30
+TRANSLATE_BATCH_SIZE = 10
+LANGS = ["fr", "de", "es", "it", "ja", "ko"]
+LANG_NAMES = {"fr": "French", "de": "German", "es": "Spanish", "it": "Italian", "ja": "Japanese", "ko": "Korean"}
 
 
 def load_data():
@@ -61,11 +64,20 @@ def build_entry(pokemon, species_data):
         if flavor_entry
         else "No description available"
     )
+    descriptions = {}
+    for lang_code in LANGS:
+        entry = next(
+            (e for e in species_data["flavor_text_entries"] if e["language"]["name"] == lang_code),
+            None,
+        )
+        if entry:
+            descriptions[lang_code] = re.sub(r"[\n\f]", " ", entry["flavor_text"])
     return {
         "id": pokemon["id"],
         "name": pokemon["name"],
         "display_name": get_display_name(pokemon["name"]),
         "description": description,
+        "descriptions": descriptions,
         "sprites": {
             "front_default": pokemon["sprites"]["front_default"],
             "official": {
@@ -172,6 +184,73 @@ def generate_appearances(client, entries, label="new"):
             time.sleep(1)
 
 
+def translate_missing(client, entries):
+    # Find entries that are missing one or more language translations
+    to_translate = [
+        e for e in entries
+        if any(lang not in e.get("descriptions", {}) for lang in LANGS)
+        and e.get("description") and e["description"] != "No description available"
+    ]
+    if not to_translate:
+        print("\nAll descriptions already translated.")
+        return
+    print(f"\nTranslating descriptions for {len(to_translate)} Pokemon...")
+
+    name_to_idx = {e["name"]: i for i, e in enumerate(entries)}
+    batches = [to_translate[i:i + TRANSLATE_BATCH_SIZE] for i in range(0, len(to_translate), TRANSLATE_BATCH_SIZE)]
+
+    for batch_num, batch in enumerate(batches, 1):
+        print(f"  Batch {batch_num}/{len(batches)}: {batch[0]['name']} ... {batch[-1]['name']}")
+
+        # Build a list of {name, missing_langs, english_text} for this batch
+        items = []
+        for e in batch:
+            existing = e.get("descriptions", {})
+            missing_langs = [l for l in LANGS if l not in existing]
+            items.append({"name": e["name"], "missing": missing_langs, "en": e["description"]})
+
+        entries_text = "\n".join(
+            f'- {it["name"]}: translate into {", ".join(LANG_NAMES[l] for l in it["missing"])}\n  English: {it["en"]}'
+            for it in items
+        )
+        prompt = (
+            "You are a Pokemon Pokedex translator. For each Pokemon below, translate its English Pokedex entry "
+            "into the specified languages. Keep the same factual, concise Pokedex tone.\n\n"
+            "Return ONLY a JSON object structured as:\n"
+            '{"pokemon-name": {"lang_code": "translated text", ...}, ...}\n'
+            "No markdown, no extra text. Lang codes: fr=French, de=German, es=Spanish, it=Italian, ja=Japanese, ko=Korean\n\n"
+            f"{entries_text}"
+        )
+
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[prompt],
+                config=types.GenerateContentConfig(max_output_tokens=32768),
+            )
+            raw = response.text.strip()
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+            translations = json.loads(raw)
+
+            updated = 0
+            for name, lang_map in translations.items():
+                if name in name_to_idx:
+                    entry = entries[name_to_idx[name]]
+                    if "descriptions" not in entry:
+                        entry["descriptions"] = {}
+                    for lang_code, text in lang_map.items():
+                        if lang_code in LANGS and lang_code not in entry["descriptions"]:
+                            entry["descriptions"][lang_code] = text
+                            updated += 1
+            print(f"    -> {updated} translations added")
+        except Exception as e:
+            print(f"    ERROR: {e}")
+
+        if batch_num < len(batches):
+            time.sleep(1)
+
+
 def backfill_display_names(data):
     missing = [p for p in data if not p.get("display_name")]
     if not missing:
@@ -191,6 +270,10 @@ def main():
 
     missing_before = sum(1 for p in data if not p.get("appearance"))
     missing_display = sum(1 for p in data if not p.get("display_name"))
+    missing_translations = sum(
+        1 for p in data
+        if any(lang not in p.get("descriptions", {}) for lang in LANGS)
+    )
 
     api_key = os.environ.get("GOOGLE_API_KEY")
     if api_key:
@@ -199,8 +282,12 @@ def main():
             generate_appearances(client, new_entries, label="new")
         # Backfill any existing entries that are missing appearances
         generate_appearances(client, data, label="existing (backfill)")
+        # Populate translated descriptions (PokeAPI where available, Gemini for gaps)
+        translate_missing(client, data)
+        if new_entries:
+            translate_missing(client, new_entries)
     else:
-        print("GOOGLE_API_KEY not set — skipping appearance generation.")
+        print("GOOGLE_API_KEY not set — skipping appearance generation and translation.")
 
     backfill_display_names(data)
 
@@ -208,7 +295,7 @@ def main():
         data.extend(new_entries)
         data.sort(key=lambda p: p["id"])
 
-    if not new_entries and missing_before == 0 and missing_display == 0:
+    if not new_entries and missing_before == 0 and missing_display == 0 and missing_translations == 0:
         print("pokemon.json is already up to date.")
         return
 
@@ -216,7 +303,7 @@ def main():
     if new_entries:
         print(f"\nDone. Added {len(new_entries)} new Pokemon. Total: {len(data)}")
     else:
-        print(f"\nDone. Backfilled missing appearances. Total: {len(data)}")
+        print(f"\nDone. Backfilled missing data. Total: {len(data)}")
 
 
 if __name__ == "__main__":

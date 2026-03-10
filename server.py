@@ -49,16 +49,26 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
         (e for e in species_data["flavor_text_entries"] if e["language"]["name"] == lang),
         None,
     )
-    if not flavor_entry:
-        flavor_entry = next(
-            (e for e in species_data["flavor_text_entries"] if e["language"]["name"] == "en"),
-            None,
-        )
-    description = (
-        re.sub(r"[\n\f]", " ", flavor_entry["flavor_text"])
-        if flavor_entry
-        else "No description available"
-    )
+    if not flavor_entry and lang != "en":
+        # Check pre-translated descriptions in the local JSON cache
+        cached = _POKEMON_BY_NAME.get(pokemon["name"], {})
+        pre_translated = cached.get("descriptions", {}).get(lang)
+        if pre_translated:
+            description = pre_translated
+        else:
+            flavor_entry = next(
+                (e for e in species_data["flavor_text_entries"] if e["language"]["name"] == "en"),
+                None,
+            )
+            description = (
+                re.sub(r"[\n\f]", " ", flavor_entry["flavor_text"])
+                if flavor_entry
+                else "No description available"
+            )
+    elif not flavor_entry:
+        description = "No description available"
+    else:
+        description = re.sub(r"[\n\f]", " ", flavor_entry["flavor_text"])
     name_entry = next(
         (e for e in species_data.get("names", []) if e["language"]["name"] == lang),
         None,
