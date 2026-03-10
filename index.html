@@ -81,6 +81,10 @@
               <div class="screen">
                 <img id="pokemonImage" src="" alt="" />
                 <p id="screenText">Select a Pokemon</p>
+                <video id="cameraFeed" autoplay playsinline muted></video>
+                <canvas id="cameraCanvas" style="display:none;"></canvas>
+                <p id="cameraStatus"></p>
+                <div id="cameraLockBar"><div id="cameraLockFill"></div></div>
               </div>
             </div>
 
@@ -195,31 +199,6 @@
       </div>
     </div>
 
-    <!-- WEBCAM POKEMON SCANNER MODAL -->
-    <div id="cameraModal" class="camera-modal" style="display:none">
-      <div class="camera-modal-inner">
-        <div class="camera-modal-header">
-          <span class="camera-modal-title">POKEMON SCANNER</span>
-          <button id="cameraModalClose" class="camera-modal-close">X</button>
-        </div>
-        <div class="camera-viewfinder">
-          <video id="cameraFeed" autoplay playsinline muted></video>
-          <canvas id="cameraCanvas" style="display:none"></canvas>
-          <div class="viewfinder-corners">
-            <span class="corner tl"></span>
-            <span class="corner tr"></span>
-            <span class="corner bl"></span>
-            <span class="corner br"></span>
-          </div>
-          <div id="scanLine" class="scan-line" style="display:none"></div>
-        </div>
-        <div id="cameraStatus" class="camera-status"></div>
-        <div class="camera-modal-actions">
-          <button id="scanBtn" class="scan-btn">SCAN</button>
-        </div>
-      </div>
-    </div>
-
-    <script src="script.js"></script>
+<script src="script.js"></script>
   </body>
 </html>
