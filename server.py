@@ -123,11 +123,14 @@ def get_pokemon(identifier):
         return jsonify({"error": "Failed to fetch Pokémon"}), 500
 
 
-def _gemini_call(client, contents, max_tokens=512):
+def _gemini_call(client, contents, max_tokens=64):
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=contents,
-        config=types.GenerateContentConfig(max_output_tokens=max_tokens),
+        config=types.GenerateContentConfig(
+            max_output_tokens=max_tokens,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
     )
     return (response.text or "").strip().lower()
 
@@ -193,7 +196,7 @@ def detect_pokemon():
                 "Reply with ONLY the slug name (lowercase, hyphenated) of the best match. No other text."
             )
             try:
-                verify_ans = _gemini_call(client, [image_part, verify_prompt], max_tokens=512)
+                verify_ans = _gemini_call(client, [image_part, verify_prompt])
                 verified = _sanitize_slug(verify_ans)
                 # 1. Exact match on sanitized slug
                 if verified in candidates:

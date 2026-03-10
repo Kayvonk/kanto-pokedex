@@ -1,5 +1,5 @@
 flask
 requests
 gunicorn
-google-genai
+google-genai==1.66.0
 python-dotenv
