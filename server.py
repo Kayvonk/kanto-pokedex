@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 
@@ -10,20 +11,39 @@ from google.genai import types
 
 load_dotenv()
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 PORT = 3000
+GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MAX_TOKENS = 64
+POKEAPI_TIMEOUT = 10
+MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
+
+SUPPORTED_LANGS = {"en", "fr", "de", "es", "it", "ja", "ko", "zh-hans", "zh-hant"}
 
 # Load pokemon.json at startup for appearance data and API fallback
-_POKEMON_FILE = os.path.join(os.path.dirname(__file__), "pokemon.json")
+_POKEMON_FILE = os.path.join(os.path.dirname(__file__), "data", "pokemon.json")
 try:
     with open(_POKEMON_FILE, encoding="utf-8") as _f:
         _pokemon_list = json.load(_f)
     _POKEMON_BY_NAME = {p["name"]: p for p in _pokemon_list}
     _POKEMON_BY_ID = {p["id"]: p for p in _pokemon_list}
-except Exception:
+except Exception as e:
+    logger.error("Failed to load pokemon.json: %s", e)
     _POKEMON_BY_NAME = {}
     _POKEMON_BY_ID = {}
+    _pokemon_list = []
+
+
+def _validate_lang(lang: str) -> str:
+    return lang if lang in SUPPORTED_LANGS else "en"
+
+
+def _stat(pokemon, stat_name):
+    return next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == stat_name), None)
 
 
 def _json_lookup(identifier):
@@ -74,6 +94,7 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
         description = "No description available"
     else:
         description = re.sub(r"[\n\f]", " ", flavor_entry["flavor_text"])
+
     name_entry = next(
         (e for e in species_data.get("names", []) if e["language"]["name"] == lang),
         None,
@@ -96,6 +117,7 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
     if cached_display and cached_display != species_en_name:
         localized_display = cached_entry.get("display_names", {}).get(lang)
         display_name = localized_display or cached_display
+
     official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
     return {
         "id": pokemon["id"],
@@ -111,12 +133,12 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
             },
         },
         "stats": {
-            "hp": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "hp"), None),
-            "attack": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "attack"), None),
-            "defense": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "defense"), None),
-            "specialAttack": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "special-attack"), None),
-            "specialDefense": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "special-defense"), None),
-            "speed": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "speed"), None),
+            "hp": _stat(pokemon, "hp"),
+            "attack": _stat(pokemon, "attack"),
+            "defense": _stat(pokemon, "defense"),
+            "specialAttack": _stat(pokemon, "special-attack"),
+            "specialDefense": _stat(pokemon, "special-defense"),
+            "speed": _stat(pokemon, "speed"),
         },
         "types": [t["type"]["name"] for t in pokemon["types"]],
         "height": pokemon["height"],
@@ -142,7 +164,7 @@ def pokemon_ids():
 @app.get("/search")
 def search_pokemon():
     query = request.args.get("q", "").strip().lower()
-    lang = request.args.get("lang", "en")
+    lang = _validate_lang(request.args.get("lang", "en"))
     if not query:
         return jsonify([])
     if query.isdigit():
@@ -181,8 +203,12 @@ def search_pokemon():
 @app.get("/pokemon/<identifier>")
 def get_pokemon(identifier):
     identifier = identifier.lower()
+    lang = _validate_lang(request.args.get("lang", "en"))
     try:
-        response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{identifier}")
+        response = requests.get(
+            f"https://pokeapi.co/api/v2/pokemon/{identifier}",
+            timeout=POKEAPI_TIMEOUT,
+        )
         if not response.ok:
             entry = _json_lookup(identifier)
             if entry:
@@ -190,27 +216,27 @@ def get_pokemon(identifier):
             return jsonify({"error": "Pokémon not found"}), 404
 
         pokemon = response.json()
-
-        species_res = requests.get(pokemon["species"]["url"])
+        species_res = requests.get(pokemon["species"]["url"], timeout=POKEAPI_TIMEOUT)
         species_data = species_res.json()
 
-        lang = request.args.get("lang", "en")
         return jsonify(build_pokemon_data(pokemon, species_data, lang))
     except requests.RequestException as e:
-        print(f"Request error: {e}")
+        logger.warning("Request error for %s: %s", identifier, e)
         entry = _json_lookup(identifier)
         if entry:
-            print(f"Using JSON fallback for {identifier}")
+            logger.info("Using JSON fallback for %s", identifier)
             return jsonify(entry)
         return jsonify({"error": "Failed to fetch Pokémon"}), 500
 
 
-def _gemini_call(client, contents, max_tokens=64):
+def _gemini_call(client, contents, max_tokens=GEMINI_MAX_TOKENS):
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model=GEMINI_MODEL,
         contents=contents,
         config=types.GenerateContentConfig(
             max_output_tokens=max_tokens,
+            # thinking_budget=0 prevents thinking tokens from consuming the output token budget,
+            # which caused truncated responses in gemini-2.5-flash
             thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
@@ -231,6 +257,9 @@ def detect_pokemon():
         return jsonify({"error": "GOOGLE_API_KEY not configured"}), 500
 
     image_bytes = request.files["image"].read()
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        return jsonify({"error": "Image too large (max 5 MB)"}), 413
+
     image_part = types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
     client = genai.Client(api_key=api_key)
 
@@ -249,7 +278,7 @@ def detect_pokemon():
     try:
         guess = _gemini_call(client, [image_part, pass1_prompt])
     except Exception as e:
-        print(f"Gemini pass 1 error: {e}")
+        logger.error("Gemini pass 1 error: %s", e)
         msg = str(e)
         if "RESOURCE_EXHAUSTED" in msg or "quota" in msg.lower():
             return jsonify({"error": "API quota exceeded — enable billing at console.cloud.google.com"}), 502
@@ -282,28 +311,28 @@ def detect_pokemon():
                 verified = _sanitize_slug(verify_ans)
                 # 1. Exact match on sanitized slug
                 if verified in candidates:
-                    print(f"Detection: pass1={slug}, pass2={verified}")
+                    logger.info("Detection: pass1=%s, pass2=%s", slug, verified)
                     slug = verified
                 else:
                     # 2. Candidate name found anywhere in raw response (handles preamble)
                     mentioned = [name for name in candidates if name in verify_ans]
                     if len(mentioned) == 1:
-                        print(f"Detection: pass1={slug}, pass2={mentioned[0]} (found in response '{verify_ans[:40]}')")
+                        logger.info("Detection: pass1=%s, pass2=%s (found in response '%s')", slug, mentioned[0], verify_ans[:40])
                         slug = mentioned[0]
                     else:
                         # 3. Prefix match on sanitized slug (handles truncated responses)
                         prefix_matches = [name for name in candidates if name.startswith(verified) or verified.startswith(name)]
                         if len(prefix_matches) == 1:
-                            print(f"Detection: pass1={slug}, pass2={prefix_matches[0]} (prefix '{verified}')")
+                            logger.info("Detection: pass1=%s, pass2=%s (prefix '%s')", slug, prefix_matches[0], verified)
                             slug = prefix_matches[0]
                         else:
-                            print(f"Detection pass2 inconclusive ('{verify_ans[:40]}'), keeping pass1={slug}")
+                            logger.info("Detection pass2 inconclusive ('%s'), keeping pass1=%s", verify_ans[:40], slug)
             except Exception as e:
-                print(f"Gemini pass 2 error (using pass 1 result): {e}")
+                logger.warning("Gemini pass 2 error (using pass 1 result): %s", e)
 
     # --- Look up numeric ID via PokeAPI, fall back to JSON ---
     try:
-        poke_res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{slug}", timeout=5)
+        poke_res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{slug}", timeout=POKEAPI_TIMEOUT)
         if poke_res.ok:
             return jsonify({"pokemon": poke_res.json()["id"]})
     except requests.RequestException:

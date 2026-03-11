@@ -1,10 +1,42 @@
-let currentId = null;
-let currentSpeciesId = null;
+// Consolidated mutable display/preference state
+const state = {
+  currentId: null,
+  currentSpeciesId: null,
+  speechVolume: parseFloat(localStorage.getItem("speechVolume") ?? "0.3"),
+  currentVoice: null,
+  currentCryUrl: null,
+  currentLang: "en",
+  isShiny: false,
+  currentSprites: null,
+};
+
 let _pokemonIds = [];
 fetch("/pokemon-ids").then(r => r.json()).then(ids => { _pokemonIds = ids; });
 
+/** Returns the best sprite URL for a given sprites object. */
+function getSpriteSrc(sprites, shiny = false) {
+  if (!sprites) return "";
+  return shiny
+    ? sprites.official?.shiny || sprites.front_default || ""
+    : sprites.official?.default || sprites.front_default || "";
+}
+
+/** Creates an <img> or a blank placeholder <div> for use in list entries. */
+function buildImgOrPlaceholder(sprites, altText) {
+  const src = getSpriteSrc(sprites);
+  if (src) {
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = altText || "";
+    return img;
+  }
+  const div = document.createElement("div");
+  div.className = "box-entry-img-placeholder";
+  return div;
+}
+
 function navigateById(delta) {
-  const refId = currentSpeciesId || currentId;
+  const refId = state.currentSpeciesId || state.currentId;
   if (!refId) { fetchPokemonDirect(1); return; }
   const idx = _pokemonIds.indexOf(refId);
   if (idx === -1) { fetchPokemonDirect(refId + delta); return; }
@@ -13,13 +45,8 @@ function navigateById(delta) {
   const next = _pokemonIds[nextIdx];
   if (next !== undefined) fetchPokemonDirect(next);
 }
-let speechVolume = parseFloat(localStorage.getItem("speechVolume") ?? "0.3");
-let currentVoice = null;
+
 const isAndroid = /android/i.test(navigator.userAgent);
-let currentCryUrl = null;
-let currentLang = "en";
-let isShiny = false;
-let currentSprites = null;
 
 // Storage / favourites
 // Each of the 10 boxes holds an array of pokemon objects
@@ -47,7 +74,7 @@ function updateStorageUI() {
 }
 
 function isInSelectedBox() {
-  return currentId != null && storage[selectedBox].some(p => p.id === currentId);
+  return state.currentId != null && storage[selectedBox].some(p => p.id === state.currentId);
 }
 
 function updateFavoriteBtn() {
@@ -83,17 +110,7 @@ function showBoxView(boxIndex) {
     num.className = "box-entry-num";
     num.textContent = i + 1;
 
-    const boxSrc = pokemon.sprites?.front_default || pokemon.sprites?.official?.default || "";
-    let imgEl;
-    if (boxSrc) {
-      imgEl = document.createElement("img");
-      imgEl.src = boxSrc;
-      imgEl.alt = pokemon.name;
-    } else {
-      imgEl = document.createElement("div");
-      imgEl.textContent = "N/A";
-      imgEl.className = "image-placeholder image-placeholder--small";
-    }
+    const imgEl = buildImgOrPlaceholder(pokemon.sprites, pokemon.name);
 
     const name = document.createElement("span");
     name.className = "box-entry-name";
@@ -152,9 +169,9 @@ function populateLangSelect() {
     opt.textContent = label;
     sel.appendChild(opt);
   });
-  const saved = localStorage.getItem("currentLang");
+  const saved = localStorage.getItem("state.currentLang");
   if (saved && sel.querySelector(`option[value="${saved}"]`)) sel.value = saved;
-  currentLang = sel.value;
+  state.currentLang = sel.value;
 }
 
 function populateVoices() {
@@ -187,10 +204,10 @@ function populateVoices() {
       if (enGBOption) voiceSelect.value = enGBOption.value;
     }
   }
-  currentVoice = voices[voiceSelect.value] ?? voices[voiceSelect.options[0]?.value] ?? null;
-  if (currentVoice) {
-    const prefix = currentVoice.lang.split("-")[0];
-    currentLang = ttsToPokeApiLang[prefix] || prefix;
+  state.currentVoice = voices[voiceSelect.value] ?? voices[voiceSelect.options[0]?.value] ?? null;
+  if (state.currentVoice) {
+    const prefix = state.currentVoice.lang.split("-")[0];
+    state.currentLang = ttsToPokeApiLang[prefix] || prefix;
   }
 }
 
@@ -225,19 +242,19 @@ if (isAndroid) {
 
 document.getElementById("voiceSelect").addEventListener("change", (e) => {
   const voices = window.speechSynthesis.getVoices();
-  currentVoice = voices[e.target.value];
-  if (currentVoice) {
-    localStorage.setItem("voiceName", currentVoice.name);
-    const prefix = currentVoice.lang.split("-")[0];
-    currentLang = ttsToPokeApiLang[prefix] || prefix;
-    if (currentId) fetchPokemonDirect(currentId);
+  state.currentVoice = voices[e.target.value];
+  if (state.currentVoice) {
+    localStorage.setItem("voiceName", state.currentVoice.name);
+    const prefix = state.currentVoice.lang.split("-")[0];
+    state.currentLang = ttsToPokeApiLang[prefix] || prefix;
+    if (state.currentId) fetchPokemonDirect(state.currentId);
   }
 });
 
 document.getElementById("langSelect").addEventListener("change", (e) => {
-  currentLang = e.target.value;
-  localStorage.setItem("currentLang", currentLang);
-  if (currentId) fetchPokemon(currentId);
+  state.currentLang = e.target.value;
+  localStorage.setItem("state.currentLang", state.currentLang);
+  if (state.currentId) fetchPokemonDirect(state.currentId);
 });
 let volumeBarTimeout = null;
 
@@ -245,8 +262,8 @@ function showVolumeBar() {
   const bar = document.getElementById("volumeBar");
   const fill = document.getElementById("volumeBarFill");
   const icon = document.getElementById("volumeIcon");
-  fill.style.width = (speechVolume * 100) + "%";
-  icon.textContent = speechVolume === 0 ? "🔇" : "🔊";
+  fill.style.width = (state.speechVolume * 100) + "%";
+  icon.textContent = state.speechVolume === 0 ? "🔇" : "🔊";
   bar.classList.add("visible");
   clearTimeout(volumeBarTimeout);
   volumeBarTimeout = setTimeout(() => bar.classList.remove("visible"), 1500);
@@ -258,7 +275,7 @@ async function fetchPokemon(identifier) {
 
 async function fetchPokemonDirect(identifier) {
   try {
-    const res = await fetch(`/pokemon/${identifier}?lang=${currentLang}`);
+    const res = await fetch(`/pokemon/${identifier}?lang=${state.currentLang}`);
     if (!res.ok) throw new Error("Pokémon not found");
     const data = await res.json();
     displayPokemon(data);
@@ -269,7 +286,7 @@ async function fetchPokemonDirect(identifier) {
 
 async function searchAndDisplay(query) {
   try {
-    const res = await fetch(`/search?q=${encodeURIComponent(query)}&lang=${currentLang}`);
+    const res = await fetch(`/search?q=${encodeURIComponent(query)}&lang=${state.currentLang}`);
     const results = await res.json();
     if (results.length === 0) {
       alert("No Pokémon found.");
@@ -302,16 +319,7 @@ function showSearchView(results) {
     idSpan.className = "box-entry-num";
     idSpan.textContent = `#${pokemon.species_id || pokemon.id}`;
 
-    const src = pokemon.sprites?.front_default || pokemon.sprites?.official?.default || "";
-    let imgEl;
-    if (src) {
-      imgEl = document.createElement("img");
-      imgEl.src = src;
-      imgEl.alt = pokemon.name;
-    } else {
-      imgEl = document.createElement("div");
-      imgEl.className = "box-entry-img-placeholder";
-    }
+    const imgEl = buildImgOrPlaceholder(pokemon.sprites, pokemon.name);
 
     const nameSpan = document.createElement("span");
     nameSpan.className = "box-entry-name";
@@ -324,16 +332,16 @@ function showSearchView(results) {
 }
 
 function displayPokemon(pokemon) {
-  currentId = pokemon.id;
-  currentSpeciesId = pokemon.species_id || pokemon.id;
-  isShiny = false;
-  currentSprites = pokemon.sprites;
+  state.currentId = pokemon.id;
+  state.currentSpeciesId = pokemon.species_id || pokemon.id;
+  state.isShiny = false;
+  state.currentSprites = pokemon.sprites;
   document.getElementById("shinyBtn").querySelector("circle").setAttribute("fill", "#b71c1c");
   hiddenBoxView();
   updateFavoriteBtn();
   document.getElementById("screenText").style.display = "none";
   const img = document.getElementById("pokemonImage");
-  const mainSrc = pokemon.sprites?.official?.default || pokemon.sprites?.front_default || "";
+  const mainSrc = getSpriteSrc(pokemon.sprites);
   if (mainSrc) {
     img.src = mainSrc;
     img.style.display = "block";
@@ -388,9 +396,9 @@ function displayPokemon(pokemon) {
 
   const makeUtterance = (text) => {
     const u = new SpeechSynthesisUtterance(text);
-    u.volume = speechVolume;
-    u.lang = currentLang;
-    if (!isAndroid && currentVoice) u.voice = currentVoice;
+    u.volume = state.speechVolume;
+    u.lang = state.currentLang;
+    if (!isAndroid && state.currentVoice) u.voice = state.currentVoice;
     return u;
   };
 
@@ -410,18 +418,16 @@ function displayPokemon(pokemon) {
   document.getElementById("pokemonType").textContent = pokemon.types.join(", ");
   document.getElementById("pokemonHeight").textContent = `Height: ${(pokemon.height / 10).toFixed(1)} m`;
   document.getElementById("pokemonWeight").textContent = `Weight: ${(pokemon.weight / 10).toFixed(1)} kg`;
-  currentCryUrl = pokemon.cry ?? null;
-  document.getElementById("cryBtn").disabled = !currentCryUrl;
+  state.currentCryUrl = pokemon.cry ?? null;
+  document.getElementById("cryBtn").disabled = !state.currentCryUrl;
 }
 
 document.getElementById("shinyBtn").addEventListener("click", () => {
-  if (!currentSprites) return;
-  isShiny = !isShiny;
+  if (!state.currentSprites) return;
+  state.isShiny = !state.isShiny;
   const img = document.getElementById("pokemonImage");
   const btn = document.getElementById("shinyBtn").querySelector("circle");
-  const shinySrc = isShiny
-    ? currentSprites.official?.shiny || currentSprites.front_default || ""
-    : currentSprites.official?.default || currentSprites.front_default || "";
+  const shinySrc = getSpriteSrc(state.currentSprites, state.isShiny);
   if (shinySrc) {
     img.src = shinySrc;
     img.style.display = "block";
@@ -437,7 +443,7 @@ document.getElementById("shinyBtn").addEventListener("click", () => {
       img.parentNode.insertBefore(ph, img);
     }
   }
-  btn.setAttribute("fill", isShiny ? "#f4c430" : "#b71c1c");
+  btn.setAttribute("fill", state.isShiny ? "#f4c430" : "#b71c1c");
 });
 
 document.getElementById("searchBtn").addEventListener("click", () => {
@@ -453,22 +459,22 @@ document.getElementById("pokemonInput").addEventListener("keydown", (e) => {
 });
 
 document.getElementById("cryBtn").addEventListener("click", () => {
-  if (currentCryUrl) {
-    const cry = new Audio(currentCryUrl);
-    cry.volume = speechVolume * 0.5;
+  if (state.currentCryUrl) {
+    const cry = new Audio(state.currentCryUrl);
+    cry.volume = state.speechVolume * 0.5;
     cry.play();
   }
 });
 
 document.getElementById("volDownBtn").addEventListener("click", () => {
-  speechVolume = Math.max(0, parseFloat((speechVolume - 0.05).toFixed(2)));
-  localStorage.setItem("speechVolume", speechVolume);
+  state.speechVolume = Math.max(0, parseFloat((state.speechVolume - 0.05).toFixed(2)));
+  localStorage.setItem("state.speechVolume", state.speechVolume);
   showVolumeBar();
 });
 
 document.getElementById("volUpBtn").addEventListener("click", () => {
-  speechVolume = Math.min(1, parseFloat((speechVolume + 0.05).toFixed(2)));
-  localStorage.setItem("speechVolume", speechVolume);
+  state.speechVolume = Math.min(1, parseFloat((state.speechVolume + 0.05).toFixed(2)));
+  localStorage.setItem("state.speechVolume", state.speechVolume);
   showVolumeBar();
 });
 
@@ -486,15 +492,15 @@ document.querySelectorAll(".storage-box").forEach((box) => {
 
 // Favourite button — append current pokemon to the selected box
 document.getElementById("favoriteBtn").addEventListener("click", () => {
-  if (!currentId || !currentSprites) return;
+  if (!state.currentId || !state.currentSprites) return;
   if (isInSelectedBox()) {
-    storage[selectedBox] = storage[selectedBox].filter(p => p.id !== currentId);
+    storage[selectedBox] = storage[selectedBox].filter(p => p.id !== state.currentId);
     boxCursor = Math.max(0, Math.min(boxCursor, storage[selectedBox].length - 1));
   } else {
     storage[selectedBox].push({
-      id: currentId,
+      id: state.currentId,
       name: document.getElementById("pokemonName").textContent,
-      sprites: currentSprites,
+      sprites: state.currentSprites,
     });
     boxCursor = storage[selectedBox].length - 1;
   }

@@ -1,6 +1,15 @@
 @font-face {
   font-family: 'EarlyGameBoy';
-  src: url('Early_GameBoy.ttf') format('truetype');
+  src: url('/static/Early_GameBoy.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  --bg-dark: #1a1a1a;
+  --bg-mid: #222;
+  --bg-light: #333;
+  --accent-red: #cc0000;
+  --accent-red-dark: #b71c1c;
 }
 
 * {
@@ -11,7 +20,7 @@
 }
 
 body {
-  background: #222;
+  background: var(--bg-mid);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -114,12 +123,12 @@ body {
   height: 42px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #333;
+  background: var(--bg-light);
   border: none;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 5px 0 #1a1a1a;
+  box-shadow: 0 5px 0 var(--bg-dark);
 }
 
 #cryBtn::after {
@@ -137,7 +146,7 @@ body {
 
 #cryBtn:not(:disabled):active {
   transform: translateY(4px);
-  box-shadow: 0 1px 0 #1a1a1a;
+  box-shadow: 0 1px 0 var(--bg-dark);
 }
 
 #cryBtn:disabled {
@@ -150,7 +159,7 @@ body {
   padding: 6px 4px;
   border-radius: 8px;
   border: none;
-  background-color: #222;
+  background-color: var(--bg-mid);
   color: white;
   cursor: pointer;
 }
@@ -160,7 +169,7 @@ body {
   padding: 4px 6px;
   border-radius: 8px;
   border: none;
-  background-color: #222;
+  background-color: var(--bg-mid);
   color: white;
   cursor: pointer;
 }
@@ -179,7 +188,7 @@ body {
 }
 
 .dpad-btn {
-  background: #222;
+  background: var(--bg-mid);
   border: none;
   cursor: pointer;
   display: flex;
@@ -188,7 +197,7 @@ body {
 }
 
 .dpad-btn:active {
-  background: #333;
+  background: var(--bg-light);
 }
 
 .dpad-up    { grid-column: 2; grid-row: 1; border-radius: 6px 6px 0 0; }
@@ -199,7 +208,7 @@ body {
 .dpad-center {
   grid-column: 2;
   grid-row: 2;
-  background: #222;
+  background: var(--bg-mid);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,11 +270,11 @@ body {
 .storage-nav button {
   width: 52px;
   height: 8px;
-  background: #333;
+  background: var(--bg-light);
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  box-shadow: 0 3px 0 #1a1a1a;
+  box-shadow: 0 3px 0 var(--bg-dark);
 }
 
 .storage-nav button:hover {
@@ -274,7 +283,7 @@ body {
 
 .storage-nav button:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #1a1a1a;
+  box-shadow: 0 1px 0 var(--bg-dark);
 }
 
 .storage-grid {
@@ -380,7 +389,7 @@ body {
   height: 44px;
   flex-shrink: 0;
   border-radius: 8px;
-  background-color: #222;
+  background-color: var(--bg-mid);
   color: white;
   text-align: center;
   font-size: 14px;
@@ -567,7 +576,7 @@ body {
 #screenText {
   font-family: 'EarlyGameBoy', monospace;
   font-size: 10px;
-  color: #333;
+  color: var(--bg-light);
   text-align: center;
   padding: 10px;
   line-height: 1.8;
@@ -597,7 +606,7 @@ body {
   padding: 8px 15px;
   border-radius: 8px;
   border: none;
-  background: #222;
+  background: var(--bg-mid);
   color: white;
   cursor: pointer;
 }

@@ -1,7 +1,7 @@
 """
 Fetches any Pokemon from PokeAPI that are missing from pokemon.json,
 adds their full data, then generates appearance descriptions via Gemini.
-Run: python update_pokemon.py
+Run: python scripts/update_pokemon.py  (from project root)
 """
 
 import json
@@ -16,12 +16,26 @@ from google.genai import types
 
 load_dotenv()
 
-POKEMON_FILE = "pokemon.json"
+POKEMON_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "pokemon.json")
 POKEAPI_LIST = "https://pokeapi.co/api/v2/pokemon?limit=10000"
+MODEL_NAME = "gemini-2.5-flash"
+# Batch size optimized for Gemini context limits (~8k tokens with ~3k for output)
 BATCH_SIZE = 30
+# Smaller batch for translations: 6 languages × ~150 chars × 10 entries fits within 32k output budget
 TRANSLATE_BATCH_SIZE = 10
+POKEAPI_TIMEOUT = 10
 LANGS = ["fr", "de", "es", "it", "ja", "ko"]
 LANG_NAMES = {"fr": "French", "de": "German", "es": "Spanish", "it": "Italian", "ja": "Japanese", "ko": "Korean"}
+
+
+def _strip_markdown_fences(text: str) -> str:
+    """Remove markdown code fences Gemini sometimes wraps JSON responses in."""
+    text = re.sub(r"^```(?:json)?\s*", "", text.strip())
+    return re.sub(r"\s*```$", "", text)
+
+
+def _stat(pokemon, stat_name):
+    return next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == stat_name), None)
 
 
 def load_data():
@@ -46,9 +60,9 @@ def _fetch_base_species_name(name):
         if name.endswith(suffix):
             base_slug = name[:-len(suffix)]
             try:
-                poke_res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{base_slug}", timeout=10)
+                poke_res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{base_slug}", timeout=POKEAPI_TIMEOUT)
                 if poke_res.ok:
-                    sp_res = requests.get(poke_res.json()["species"]["url"], timeout=10)
+                    sp_res = requests.get(poke_res.json()["species"]["url"], timeout=POKEAPI_TIMEOUT)
                     if sp_res.ok:
                         return next(
                             (n["name"] for n in sp_res.json().get("names", []) if n["language"]["name"] == "en"),
@@ -62,7 +76,7 @@ def _fetch_base_species_name(name):
 def get_display_name(name, base_species_name=None):
     base_name = base_species_name or name.split("-")[0].title()
     try:
-        form_res = requests.get(f"https://pokeapi.co/api/v2/pokemon-form/{name}", timeout=10)
+        form_res = requests.get(f"https://pokeapi.co/api/v2/pokemon-form/{name}", timeout=POKEAPI_TIMEOUT)
         if form_res.ok:
             form_data = form_res.json()
             en_name = next(
@@ -133,12 +147,12 @@ def build_entry(pokemon, species_data):
             },
         },
         "stats": {
-            "hp": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "hp"), None),
-            "attack": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "attack"), None),
-            "defense": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "defense"), None),
-            "specialAttack": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "special-attack"), None),
-            "specialDefense": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "special-defense"), None),
-            "speed": next((s["base_stat"] for s in pokemon["stats"] if s["stat"]["name"] == "speed"), None),
+            "hp": _stat(pokemon, "hp"),
+            "attack": _stat(pokemon, "attack"),
+            "defense": _stat(pokemon, "defense"),
+            "specialAttack": _stat(pokemon, "special-attack"),
+            "specialDefense": _stat(pokemon, "special-defense"),
+            "speed": _stat(pokemon, "speed"),
         },
         "types": [t["type"]["name"] for t in pokemon["types"]],
         "height": pokemon["height"],
@@ -157,20 +171,21 @@ def fetch_new_entries(existing_names):
     print(f"Found {len(new_entries)} new Pokemon (have {len(existing_names)} already)")
 
     entries = []
-    for i, p in enumerate(new_entries, 1):
-        print(f"  Fetching {p['name']} ({i}/{len(new_entries)})...")
-        try:
-            poke_res = requests.get(p["url"], timeout=10)
-            poke_res.raise_for_status()
-            pokemon = poke_res.json()
+    with requests.Session() as session:
+        for i, p in enumerate(new_entries, 1):
+            print(f"  Fetching {p['name']} ({i}/{len(new_entries)})...")
+            try:
+                poke_res = session.get(p["url"], timeout=POKEAPI_TIMEOUT)
+                poke_res.raise_for_status()
+                pokemon = poke_res.json()
 
-            species_res = requests.get(pokemon["species"]["url"], timeout=10)
-            species_res.raise_for_status()
-            species_data = species_res.json()
+                species_res = session.get(pokemon["species"]["url"], timeout=POKEAPI_TIMEOUT)
+                species_res.raise_for_status()
+                species_data = species_res.json()
 
-            entries.append(build_entry(pokemon, species_data))
-        except Exception as e:
-            print(f"    ERROR fetching {p['name']}: {e}")
+                entries.append(build_entry(pokemon, species_data))
+            except Exception as e:
+                print(f"    ERROR fetching {p['name']}: {e}")
 
     return entries
 
@@ -202,13 +217,11 @@ def generate_appearances(client, entries, label="new"):
 
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=MODEL_NAME,
                 contents=[prompt],
                 config=types.GenerateContentConfig(max_output_tokens=8192),
             )
-            raw = response.text.strip()
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
+            raw = _strip_markdown_fences(response.text)
             appearances = json.loads(raw)
 
             updated = 0
@@ -271,13 +284,11 @@ def translate_missing(client, entries):
 
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=MODEL_NAME,
                 contents=[prompt],
                 config=types.GenerateContentConfig(max_output_tokens=32768),
             )
-            raw = response.text.strip()
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
+            raw = _strip_markdown_fences(response.text)
             translations = json.loads(raw)
 
             updated = 0
@@ -332,13 +343,11 @@ def translate_display_names(client, entries):
 
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=MODEL_NAME,
                 contents=[prompt],
                 config=types.GenerateContentConfig(max_output_tokens=32768),
             )
-            raw = response.text.strip()
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
+            raw = _strip_markdown_fences(response.text)
             translations = json.loads(raw)
 
             updated = 0
@@ -371,31 +380,28 @@ def fix_display_names(data):
     return len(to_fix)
 
 
-def base_name_of(name):
-    return name.split("-")[0]
-
-
 def backfill_species_id(data):
     missing = [p for p in data if p.get("species_id") is None]
     if not missing:
         return 0
     print(f"\nBackfilling species_id for {len(missing)} Pokemon...")
     updated = 0
-    for p in missing:
-        if p["id"] < 10000:
-            p["species_id"] = p["id"]
-            updated += 1
-        else:
-            try:
-                res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{p['name']}", timeout=10)
-                if res.ok:
-                    sp_url = res.json()["species"]["url"]
-                    sp_res = requests.get(sp_url, timeout=10)
-                    if sp_res.ok:
-                        p["species_id"] = sp_res.json()["id"]
-                        updated += 1
-            except Exception as e:
-                print(f"    ERROR fetching species for {p['name']}: {e}")
+    with requests.Session() as session:
+        for p in missing:
+            if p["id"] < 10000:
+                p["species_id"] = p["id"]
+                updated += 1
+            else:
+                try:
+                    res = session.get(f"https://pokeapi.co/api/v2/pokemon/{p['name']}", timeout=POKEAPI_TIMEOUT)
+                    if res.ok:
+                        sp_url = res.json()["species"]["url"]
+                        sp_res = session.get(sp_url, timeout=POKEAPI_TIMEOUT)
+                        if sp_res.ok:
+                            p["species_id"] = sp_res.json()["id"]
+                            updated += 1
+                except Exception as e:
+                    print(f"    ERROR fetching species for {p['name']}: {e}")
     print(f"  -> {updated}/{len(missing)} species_ids set")
     return updated
 

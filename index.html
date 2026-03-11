@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <title>Kanto Pokédex</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Interactive Pokédex with camera scan and multilingual support">
+    <meta name="theme-color" content="#cc0000">
+    <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <div id="volumeBar">
@@ -79,8 +81,8 @@
                 <line x1="190" y1="212" x2="268" y2="212" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
               </svg>
               <div class="screen">
-                <img id="pokemonImage" src="" alt="" />
-                <p id="screenText">Select a Pokemon</p>
+                <img id="pokemonImage" src="" alt="Pokémon artwork" />
+                <p id="screenText" aria-live="polite">Select a Pokemon</p>
                 <video id="cameraFeed" autoplay playsinline muted></video>
                 <canvas id="cameraCanvas" style="display:none;"></canvas>
                 <p id="cameraStatus"></p>
@@ -91,7 +93,7 @@
             <div class="bottom-controls">
               <div class="bottom-left">
                 <div class="bottom-row1">
-                  <button id="cryBtn" title="Play Pokémon cry"></button>
+                  <button id="cryBtn" title="Play Pokémon cry" aria-label="Play Pokémon cry"></button>
                   <button id="volDownBtn">&#x1F50A;−</button>
                   <button id="volUpBtn">&#x1F50A;+</button>
                 </div>
@@ -102,11 +104,11 @@
               </div>
               <div class="bottom-right">
                 <div class="dpad">
-                  <button class="dpad-btn dpad-up" id="dpadUp"></button>
-                  <button class="dpad-btn dpad-left" id="dpadLeft"></button>
+                  <button class="dpad-btn dpad-up" id="dpadUp" aria-label="Previous 10 Pokémon"></button>
+                  <button class="dpad-btn dpad-left" id="dpadLeft" aria-label="Previous Pokémon"></button>
                   <div class="dpad-center"><div class="dpad-center-dot"></div></div>
-                  <button class="dpad-btn dpad-right" id="dpadRight"></button>
-                  <button class="dpad-btn dpad-down" id="dpadDown"></button>
+                  <button class="dpad-btn dpad-right" id="dpadRight" aria-label="Next Pokémon"></button>
+                  <button class="dpad-btn dpad-down" id="dpadDown" aria-label="Next 10 Pokémon"></button>
                 </div>
               </div>
             </div>
@@ -206,6 +208,6 @@
       </div>
     </div>
 
-<script src="script.js"></script>
+<script src="/static/script.js"></script>
   </body>
 </html>
