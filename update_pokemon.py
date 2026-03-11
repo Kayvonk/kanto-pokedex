@@ -34,7 +34,33 @@ def save_data(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def get_display_name(name):
+_REGION_SUFFIXES = {
+    "galar": "Galarian", "alola": "Alolan", "hisui": "Hisuian", "paldea": "Paldean",
+}
+FORM_SUFFIXES = ["-galar", "-alola", "-hisui", "-paldea"]
+
+
+def _fetch_base_species_name(name):
+    """For regional forms, fetch the proper English species name (e.g. 'Mr. Mime' for mr-mime-galar)."""
+    for suffix in FORM_SUFFIXES:
+        if name.endswith(suffix):
+            base_slug = name[:-len(suffix)]
+            try:
+                poke_res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{base_slug}", timeout=10)
+                if poke_res.ok:
+                    sp_res = requests.get(poke_res.json()["species"]["url"], timeout=10)
+                    if sp_res.ok:
+                        return next(
+                            (n["name"] for n in sp_res.json().get("names", []) if n["language"]["name"] == "en"),
+                            None,
+                        )
+            except Exception:
+                pass
+    return None
+
+
+def get_display_name(name, base_species_name=None):
+    base_name = base_species_name or name.split("-")[0].title()
     try:
         form_res = requests.get(f"https://pokeapi.co/api/v2/pokemon-form/{name}", timeout=10)
         if form_res.ok:
@@ -44,10 +70,25 @@ def get_display_name(name):
                 None,
             )
             if en_name:
+                if en_name.endswith(" Form"):
+                    # "Galarian Form" → "Galarian Ponyta", "Gigantamax Form" → "Gigantamax Pikachu"
+                    # [:-4] strips "Form" keeping the trailing space: "Galarian " + "Ponyta"
+                    if base_species_name is None:
+                        base_name = _fetch_base_species_name(name) or base_name
+                    return en_name[:-4] + base_name
+                elif base_name.lower() not in en_name.lower():
+                    # "Original Cap" → "Pikachu Original Cap"
+                    return f"{base_name} {en_name}"
                 return en_name
     except Exception:
         pass
     parts = name.replace("-", " ").title().split()
+    # Handle regional suffix in slug fallback: "Ponyta Galar" → "Galarian Ponyta"
+    for suffix, prefix in _REGION_SUFFIXES.items():
+        if suffix.title() in parts:
+            parts.remove(suffix.title())
+            parts.insert(0, prefix)
+            break
     if "Mega" in parts and parts[0] != "Mega":
         parts.remove("Mega")
         parts.insert(0, "Mega")
@@ -72,17 +113,22 @@ def build_entry(pokemon, species_data):
         )
         if entry:
             descriptions[lang_code] = re.sub(r"[\n\f]", " ", entry["flavor_text"])
+    en_species_name = next(
+        (n["name"] for n in species_data.get("names", []) if n["language"]["name"] == "en"),
+        None,
+    )
+    official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
     return {
         "id": pokemon["id"],
         "name": pokemon["name"],
-        "display_name": get_display_name(pokemon["name"]),
+        "display_name": get_display_name(pokemon["name"], base_species_name=en_species_name),
         "description": description,
         "descriptions": descriptions,
         "sprites": {
-            "front_default": pokemon["sprites"]["front_default"],
+            "front_default": pokemon["sprites"].get("front_default"),
             "official": {
-                "default": pokemon["sprites"]["other"]["official-artwork"]["front_default"],
-                "shiny": pokemon["sprites"]["other"]["official-artwork"]["front_shiny"],
+                "default": official_artwork.get("front_default"),
+                "shiny": official_artwork.get("front_shiny"),
             },
         },
         "stats": {
@@ -251,6 +297,83 @@ def translate_missing(client, entries):
             time.sleep(1)
 
 
+def translate_display_names(client, entries):
+    """Translate display_name for alternate forms (name contains '-') into all LANGS."""
+    to_translate = [
+        e for e in entries
+        if "-" in e["name"]
+        and e.get("display_name")
+        and any(lang not in e.get("display_names", {}) for lang in LANGS)
+    ]
+    if not to_translate:
+        print("\nAll alternate form display_names already translated.")
+        return
+
+    print(f"\nTranslating display_names for {len(to_translate)} alternate forms...")
+    name_to_idx = {e["name"]: i for i, e in enumerate(entries)}
+    batches = [to_translate[i:i + TRANSLATE_BATCH_SIZE] for i in range(0, len(to_translate), TRANSLATE_BATCH_SIZE)]
+
+    for batch_num, batch in enumerate(batches, 1):
+        print(f"  Batch {batch_num}/{len(batches)}: {batch[0]['name']} ... {batch[-1]['name']}")
+
+        items_text = "\n".join(
+            f'- {e["name"]}: "{e["display_name"]}"'
+            for e in batch
+            if any(lang not in e.get("display_names", {}) for lang in LANGS)
+        )
+        prompt = (
+            "You are a Pokemon translator. Translate each Pokemon form name below into French, German, Spanish, Italian, Japanese, and Korean. "
+            "Keep proper nouns (Pokemon base names) phonetically accurate per each language's official localization. "
+            'Return ONLY a JSON object: {"pokemon-name": {"fr": "...", "de": "...", "es": "...", "it": "...", "ja": "...", "ko": "..."}, ...}\n'
+            "No markdown, no extra text.\n\n"
+            f"{items_text}"
+        )
+
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[prompt],
+                config=types.GenerateContentConfig(max_output_tokens=32768),
+            )
+            raw = response.text.strip()
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+            translations = json.loads(raw)
+
+            updated = 0
+            for name, lang_map in translations.items():
+                if name in name_to_idx:
+                    entry = entries[name_to_idx[name]]
+                    if "display_names" not in entry:
+                        entry["display_names"] = {}
+                    for lang_code, text in lang_map.items():
+                        if lang_code in LANGS and lang_code not in entry["display_names"]:
+                            entry["display_names"][lang_code] = text
+                            updated += 1
+            print(f"    -> {updated} translations added")
+        except Exception as e:
+            print(f"    ERROR: {e}")
+
+        if batch_num < len(batches):
+            time.sleep(1)
+
+
+def fix_display_names(data):
+    """Re-generate display_names for all alternate form entries (any name with '-')."""
+    to_fix = [p for p in data if "-" in p["name"]]
+    if not to_fix:
+        print("\nAll display_names look correct.")
+        return 0
+    print(f"\nRefreshing display_name for {len(to_fix)} alternate form entries...")
+    for p in to_fix:
+        p["display_name"] = get_display_name(p["name"])
+    return len(to_fix)
+
+
+def base_name_of(name):
+    return name.split("-")[0]
+
+
 def backfill_display_names(data):
     missing = [p for p in data if not p.get("display_name")]
     if not missing:
@@ -286,16 +409,20 @@ def main():
         translate_missing(client, data)
         if new_entries:
             translate_missing(client, new_entries)
+        translate_display_names(client, data)
+        if new_entries:
+            translate_display_names(client, new_entries)
     else:
         print("GOOGLE_API_KEY not set — skipping appearance generation and translation.")
 
     backfill_display_names(data)
+    fixed_display = fix_display_names(data)
 
     if new_entries:
         data.extend(new_entries)
         data.sort(key=lambda p: p["id"])
 
-    if not new_entries and missing_before == 0 and missing_display == 0 and missing_translations == 0:
+    if not new_entries and missing_before == 0 and missing_display == 0 and missing_translations == 0 and fixed_display == 0:
         print("pokemon.json is already up to date.")
         return
 

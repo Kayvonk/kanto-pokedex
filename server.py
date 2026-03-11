@@ -41,6 +41,11 @@ def _json_lookup(identifier):
         matches = [p for p in _pokemon_list if all(w in p["name"].split("-") for w in words)]
         if len(matches) == 1:
             return matches[0]
+    # Display name fallback: case-insensitive match against display_name (e.g. "Galarian Ponyta")
+    identifier_lower = identifier.lower()
+    display_matches = [p for p in _pokemon_list if p.get("display_name", "").lower() == identifier_lower]
+    if len(display_matches) == 1:
+        return display_matches[0]
     return None
 
 
@@ -81,16 +86,27 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
     display_name = (
         name_entry["name"] if name_entry else pokemon["name"].replace("-", " ").title()
     )
+    # For alternate forms, species names give the base species (e.g. "Absol" for absol-mega-z).
+    # Use the JSON cache display_name when it's more specific than the base species name.
+    cached_entry = _POKEMON_BY_NAME.get(pokemon["name"], {})
+    cached_display = cached_entry.get("display_name", "")
+    species_en_name = next(
+        (e["name"] for e in species_data.get("names", []) if e["language"]["name"] == "en"), ""
+    )
+    if cached_display and cached_display != species_en_name:
+        localized_display = cached_entry.get("display_names", {}).get(lang)
+        display_name = localized_display or cached_display
+    official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
     return {
         "id": pokemon["id"],
         "name": pokemon["name"],
         "display_name": display_name,
         "description": description,
         "sprites": {
-            "front_default": pokemon["sprites"]["front_default"],
+            "front_default": pokemon["sprites"].get("front_default"),
             "official": {
-                "default": pokemon["sprites"]["other"]["official-artwork"]["front_default"],
-                "shiny": pokemon["sprites"]["other"]["official-artwork"]["front_shiny"],
+                "default": official_artwork.get("front_default"),
+                "shiny": official_artwork.get("front_shiny"),
             },
         },
         "stats": {

@@ -883,3 +883,20 @@ body {
   border-radius: 2px;
   transition: width 0.15s ease;
 }
+
+.image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-family: 'EarlyGameBoy', monospace;
+  text-align: center;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.image-placeholder--small {
+  font-size: 0.7rem;
+  width: 96px;
+  height: 96px;
+}

@@ -79,15 +79,23 @@ function showBoxView(boxIndex) {
     num.className = "box-entry-num";
     num.textContent = i + 1;
 
-    const img = document.createElement("img");
-    img.src = pokemon.sprites?.front_default || pokemon.sprites?.official?.default || "";
-    img.alt = pokemon.name;
+    const boxSrc = pokemon.sprites?.front_default || pokemon.sprites?.official?.default || "";
+    let imgEl;
+    if (boxSrc) {
+      imgEl = document.createElement("img");
+      imgEl.src = boxSrc;
+      imgEl.alt = pokemon.name;
+    } else {
+      imgEl = document.createElement("div");
+      imgEl.textContent = "N/A";
+      imgEl.className = "image-placeholder image-placeholder--small";
+    }
 
     const name = document.createElement("span");
     name.className = "box-entry-name";
     name.textContent = pokemon.display_name || pokemon.name;
 
-    entry.append(num, img, name);
+    entry.append(num, imgEl, name);
     entry.addEventListener("click", () => {
       boxCursor = i;
       fetchPokemon(pokemon.id);
@@ -259,9 +267,23 @@ function displayPokemon(pokemon) {
   updateFavoriteBtn();
   document.getElementById("screenText").style.display = "none";
   const img = document.getElementById("pokemonImage");
-  img.src = pokemon.sprites?.official?.default || pokemon.sprites?.front_default || "";
+  const mainSrc = pokemon.sprites?.official?.default || pokemon.sprites?.front_default || "";
+  if (mainSrc) {
+    img.src = mainSrc;
+    img.style.display = "block";
+    document.getElementById("pokemonImagePlaceholder")?.remove();
+  } else {
+    img.style.display = "none";
+    let ph = document.getElementById("pokemonImagePlaceholder");
+    if (!ph) {
+      ph = document.createElement("div");
+      ph.id = "pokemonImagePlaceholder";
+      ph.textContent = "Image not available";
+      ph.className = "image-placeholder";
+      img.parentNode.insertBefore(ph, img);
+    }
+  }
   img.alt = pokemon.name;
-  img.style.display = "block";
   document.getElementById("pokemonName").textContent = pokemon.display_name || (pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1));
   document.getElementById("pokemonDescription").textContent = pokemon.description;
   const camera = document.querySelector(".camera");
@@ -331,13 +353,25 @@ document.getElementById("shinyBtn").addEventListener("click", () => {
   isShiny = !isShiny;
   const img = document.getElementById("pokemonImage");
   const btn = document.getElementById("shinyBtn").querySelector("circle");
-  if (isShiny) {
-    img.src = currentSprites.official?.shiny || currentSprites.front_default || "";
-    btn.setAttribute("fill", "#f4c430");
+  const shinySrc = isShiny
+    ? currentSprites.official?.shiny || currentSprites.front_default || ""
+    : currentSprites.official?.default || currentSprites.front_default || "";
+  if (shinySrc) {
+    img.src = shinySrc;
+    img.style.display = "block";
+    document.getElementById("pokemonImagePlaceholder")?.remove();
   } else {
-    img.src = currentSprites.official?.default || currentSprites.front_default || "";
-    btn.setAttribute("fill", "#b71c1c");
+    img.style.display = "none";
+    let ph = document.getElementById("pokemonImagePlaceholder");
+    if (!ph) {
+      ph = document.createElement("div");
+      ph.id = "pokemonImagePlaceholder";
+      ph.textContent = "Image not available";
+      ph.className = "image-placeholder";
+      img.parentNode.insertBefore(ph, img);
+    }
   }
+  btn.setAttribute("fill", isShiny ? "#f4c430" : "#b71c1c");
 });
 
 document.getElementById("searchBtn").addEventListener("click", () => {
