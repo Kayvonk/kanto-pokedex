@@ -99,6 +99,7 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
     official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
     return {
         "id": pokemon["id"],
+        "species_id": species_data["id"],
         "name": pokemon["name"],
         "display_name": display_name,
         "description": description,
@@ -131,7 +132,39 @@ def index():
 
 @app.get("/pokemon-ids")
 def pokemon_ids():
-    return jsonify(sorted(_POKEMON_BY_ID.keys()))
+    base_ids = sorted(
+        p["id"] for p in _pokemon_list
+        if p.get("species_id", p["id"]) == p["id"] and p["id"] < 10000
+    )
+    return jsonify(base_ids)
+
+
+@app.get("/search")
+def search_pokemon():
+    query = request.args.get("q", "").strip().lower()
+    lang = request.args.get("lang", "en")
+    if not query:
+        return jsonify([])
+    words = query.split()
+    results = []
+    for p in _pokemon_list:
+        name = p.get("name", "")
+        display = p.get("display_name", "").lower()
+        localized = p.get("display_names", {}).get(lang, "").lower()
+        if (
+            all(w in name.split("-") for w in words)
+            or all(w in display for w in words)
+            or (localized and all(w in localized for w in words))
+        ):
+            results.append({
+                "id": p["id"],
+                "species_id": p.get("species_id", p["id"]),
+                "name": p["name"],
+                "display_name": p.get("display_names", {}).get(lang) or p.get("display_name", p["name"]),
+                "sprites": p.get("sprites", {}),
+                "types": p.get("types", []),
+            })
+    return jsonify(results)
 
 
 @app.get("/pokemon/<identifier>")

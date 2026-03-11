@@ -1,13 +1,15 @@
 let currentId = null;
+let currentSpeciesId = null;
 let _pokemonIds = [];
 fetch("/pokemon-ids").then(r => r.json()).then(ids => { _pokemonIds = ids; });
 
 function navigateById(delta) {
-  if (!currentId) { fetchPokemon(1); return; }
-  const idx = _pokemonIds.indexOf(currentId);
-  if (idx === -1) { fetchPokemon(currentId + delta); return; }
+  const refId = currentSpeciesId || currentId;
+  if (!refId) { fetchPokemonDirect(1); return; }
+  const idx = _pokemonIds.indexOf(refId);
+  if (idx === -1) { fetchPokemonDirect(refId + delta); return; }
   const next = _pokemonIds[Math.max(0, Math.min(_pokemonIds.length - 1, idx + delta))];
-  if (next !== undefined) fetchPokemon(next);
+  if (next !== undefined) fetchPokemonDirect(next);
 }
 let speechVolume = parseFloat(localStorage.getItem("speechVolume") ?? "0.3");
 let currentVoice = null;
@@ -98,7 +100,7 @@ function showBoxView(boxIndex) {
     entry.append(num, imgEl, name);
     entry.addEventListener("click", () => {
       boxCursor = i;
-      fetchPokemon(pokemon.id);
+      fetchPokemonDirect(pokemon.id);
     });
     list.appendChild(entry);
   });
@@ -107,6 +109,7 @@ function showBoxView(boxIndex) {
 function hiddenBoxView() {
   document.getElementById("pokemonView").style.display = "block";
   document.getElementById("boxView").style.display = "none";
+  document.getElementById("searchView").style.display = "none";
 }
 
 // Maps TTS BCP-47 prefix → PokeAPI language name
@@ -248,6 +251,15 @@ function showVolumeBar() {
 }
 
 async function fetchPokemon(identifier) {
+  const isNumeric = /^\d+$/.test(String(identifier));
+  if (isNumeric) {
+    await fetchPokemonDirect(identifier);
+  } else {
+    await searchAndDisplay(identifier);
+  }
+}
+
+async function fetchPokemonDirect(identifier) {
   try {
     const res = await fetch(`/pokemon/${identifier}?lang=${currentLang}`);
     if (!res.ok) throw new Error("Pokémon not found");
@@ -258,8 +270,65 @@ async function fetchPokemon(identifier) {
   }
 }
 
+async function searchAndDisplay(query) {
+  try {
+    const res = await fetch(`/search?q=${encodeURIComponent(query)}&lang=${currentLang}`);
+    const results = await res.json();
+    if (results.length === 0) {
+      alert("No Pokémon found.");
+      return;
+    }
+    if (results.length === 1) {
+      await fetchPokemonDirect(results[0].name);
+      return;
+    }
+    showSearchView(results);
+  } catch (err) {
+    alert("Search failed.");
+  }
+}
+
+function showSearchView(results) {
+  document.getElementById("pokemonView").style.display = "none";
+  document.getElementById("boxView").style.display = "none";
+  document.getElementById("searchView").style.display = "block";
+  document.getElementById("searchViewCount").textContent = `${results.length} results`;
+
+  const list = document.getElementById("searchViewList");
+  list.innerHTML = "";
+  results.forEach(pokemon => {
+    const entry = document.createElement("div");
+    entry.className = "box-entry";
+
+    const idSpan = document.createElement("span");
+    idSpan.className = "box-entry-num";
+    idSpan.textContent = `#${pokemon.species_id || pokemon.id}`;
+
+    const src = pokemon.sprites?.front_default || pokemon.sprites?.official?.default || "";
+    let imgEl;
+    if (src) {
+      imgEl = document.createElement("img");
+      imgEl.src = src;
+      imgEl.alt = pokemon.name;
+    } else {
+      imgEl = document.createElement("div");
+      imgEl.textContent = "N/A";
+      imgEl.className = "image-placeholder image-placeholder--small";
+    }
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "box-entry-name";
+    nameSpan.textContent = pokemon.display_name;
+
+    entry.append(idSpan, imgEl, nameSpan);
+    entry.addEventListener("click", () => fetchPokemonDirect(pokemon.name));
+    list.appendChild(entry);
+  });
+}
+
 function displayPokemon(pokemon) {
   currentId = pokemon.id;
+  currentSpeciesId = pokemon.species_id || pokemon.id;
   isShiny = false;
   currentSprites = pokemon.sprites;
   document.getElementById("shinyBtn").querySelector("circle").setAttribute("fill", "#b71c1c");
@@ -340,7 +409,7 @@ function displayPokemon(pokemon) {
   };
 
   window.speechSynthesis.speak(nameUtterance);
-  document.getElementById("pokemonId").textContent = `#${pokemon.id}`;
+  document.getElementById("pokemonId").textContent = `#${pokemon.species_id || pokemon.id}`;
   document.getElementById("pokemonType").textContent = pokemon.types.join(", ");
   document.getElementById("pokemonHeight").textContent = `Height: ${(pokemon.height / 10).toFixed(1)} m`;
   document.getElementById("pokemonWeight").textContent = `Weight: ${(pokemon.weight / 10).toFixed(1)} kg`;
@@ -454,14 +523,14 @@ document.getElementById("prevBtn").addEventListener("click", () => {
   const box = storage[selectedBox];
   if (!box.length) return;
   boxCursor = (boxCursor - 1 + box.length) % box.length;
-  fetchPokemon(box[boxCursor].id);
+  fetchPokemonDirect(box[boxCursor].id);
 });
 
 document.getElementById("nextBtn").addEventListener("click", () => {
   const box = storage[selectedBox];
   if (!box.length) return;
   boxCursor = (boxCursor + 1) % box.length;
-  fetchPokemon(box[boxCursor].id);
+  fetchPokemonDirect(box[boxCursor].id);
 });
 
 // Init storage UI on load

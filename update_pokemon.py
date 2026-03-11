@@ -120,6 +120,7 @@ def build_entry(pokemon, species_data):
     official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
     return {
         "id": pokemon["id"],
+        "species_id": species_data["id"],
         "name": pokemon["name"],
         "display_name": get_display_name(pokemon["name"], base_species_name=en_species_name),
         "description": description,
@@ -374,6 +375,31 @@ def base_name_of(name):
     return name.split("-")[0]
 
 
+def backfill_species_id(data):
+    missing = [p for p in data if p.get("species_id") is None]
+    if not missing:
+        return 0
+    print(f"\nBackfilling species_id for {len(missing)} Pokemon...")
+    updated = 0
+    for p in missing:
+        if p["id"] < 10000:
+            p["species_id"] = p["id"]
+            updated += 1
+        else:
+            try:
+                res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{p['name']}", timeout=10)
+                if res.ok:
+                    sp_url = res.json()["species"]["url"]
+                    sp_res = requests.get(sp_url, timeout=10)
+                    if sp_res.ok:
+                        p["species_id"] = sp_res.json()["id"]
+                        updated += 1
+            except Exception as e:
+                print(f"    ERROR fetching species for {p['name']}: {e}")
+    print(f"  -> {updated}/{len(missing)} species_ids set")
+    return updated
+
+
 def backfill_display_names(data):
     missing = [p for p in data if not p.get("display_name")]
     if not missing:
@@ -415,6 +441,7 @@ def main():
     else:
         print("GOOGLE_API_KEY not set — skipping appearance generation and translation.")
 
+    backfill_species_id(data)
     backfill_display_names(data)
     fixed_display = fix_display_names(data)
 
