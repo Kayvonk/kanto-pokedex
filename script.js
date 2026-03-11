@@ -8,7 +8,9 @@ function navigateById(delta) {
   if (!refId) { fetchPokemonDirect(1); return; }
   const idx = _pokemonIds.indexOf(refId);
   if (idx === -1) { fetchPokemonDirect(refId + delta); return; }
-  const next = _pokemonIds[Math.max(0, Math.min(_pokemonIds.length - 1, idx + delta))];
+  const nextIdx = idx + delta;
+  if (nextIdx < 0 || nextIdx >= _pokemonIds.length) return;
+  const next = _pokemonIds[nextIdx];
   if (next !== undefined) fetchPokemonDirect(next);
 }
 let speechVolume = parseFloat(localStorage.getItem("speechVolume") ?? "0.3");
@@ -292,6 +294,7 @@ function showSearchView(results) {
   document.getElementById("pokemonView").style.display = "none";
   document.getElementById("boxView").style.display = "none";
   document.getElementById("searchView").style.display = "block";
+  if (isMobile()) document.querySelector(".pokedex").style.transform = "translateX(-50%)";
   document.getElementById("searchViewCount").textContent = `${results.length} results`;
 
   const list = document.getElementById("searchViewList");
@@ -332,6 +335,7 @@ function displayPokemon(pokemon) {
   currentSprites = pokemon.sprites;
   document.getElementById("shinyBtn").querySelector("circle").setAttribute("fill", "#b71c1c");
   hiddenBoxView();
+  if (isMobile()) document.querySelector(".pokedex").style.transform = "translateX(-50%)";
   updateFavoriteBtn();
   document.getElementById("screenText").style.display = "none";
   const img = document.getElementById("pokemonImage");
