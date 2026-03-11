@@ -145,6 +145,17 @@ def search_pokemon():
     lang = request.args.get("lang", "en")
     if not query:
         return jsonify([])
+    if query.isdigit():
+        species_id = int(query)
+        results = [p for p in _pokemon_list if p.get("species_id", p["id"]) == species_id]
+        return jsonify([{
+            "id": p["id"],
+            "species_id": p.get("species_id", p["id"]),
+            "name": p["name"],
+            "display_name": p.get("display_names", {}).get(lang) or p.get("display_name", p["name"]),
+            "sprites": p.get("sprites", {}),
+            "types": p.get("types", []),
+        } for p in results])
     words = query.split()
     results = []
     for p in _pokemon_list:

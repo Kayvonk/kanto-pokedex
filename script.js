@@ -230,7 +230,7 @@ document.getElementById("voiceSelect").addEventListener("change", (e) => {
     localStorage.setItem("voiceName", currentVoice.name);
     const prefix = currentVoice.lang.split("-")[0];
     currentLang = ttsToPokeApiLang[prefix] || prefix;
-    if (currentId) fetchPokemon(currentId);
+    if (currentId) fetchPokemonDirect(currentId);
   }
 });
 
@@ -253,12 +253,7 @@ function showVolumeBar() {
 }
 
 async function fetchPokemon(identifier) {
-  const isNumeric = /^\d+$/.test(String(identifier));
-  if (isNumeric) {
-    await fetchPokemonDirect(identifier);
-  } else {
-    await searchAndDisplay(identifier);
-  }
+  await searchAndDisplay(String(identifier));
 }
 
 async function fetchPokemonDirect(identifier) {
@@ -335,7 +330,6 @@ function displayPokemon(pokemon) {
   currentSprites = pokemon.sprites;
   document.getElementById("shinyBtn").querySelector("circle").setAttribute("fill", "#b71c1c");
   hiddenBoxView();
-  if (isMobile()) document.querySelector(".pokedex").style.transform = "translateX(-50%)";
   updateFavoriteBtn();
   document.getElementById("screenText").style.display = "none";
   const img = document.getElementById("pokemonImage");
