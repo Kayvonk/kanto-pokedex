@@ -312,8 +312,7 @@ function showSearchView(results) {
       imgEl.alt = pokemon.name;
     } else {
       imgEl = document.createElement("div");
-      imgEl.textContent = "N/A";
-      imgEl.className = "image-placeholder image-placeholder--small";
+      imgEl.className = "box-entry-img-placeholder";
     }
 
     const nameSpan = document.createElement("span");
