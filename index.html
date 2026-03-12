@@ -152,7 +152,33 @@
               </svg>
             </button>
             <div class="info-screen">
-              <div id="pokemonView">
+              <div class="info-screen-content">
+              <div id="menuView" style="display:none">
+                <button class="menu-option" id="menuPokedexBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 20" width="20" height="25">
+                    <rect x="1" y="0.5" width="14" height="10.5" rx="2" fill="rgba(255,255,255,0.85)"/>
+                    <rect x="3" y="2" width="10" height="7" rx="1" fill="rgba(0,0,0,0.4)"/>
+                    <rect x="1" y="11.5" width="14" height="0.5" fill="rgba(0,0,0,0.2)"/>
+                    <rect x="1" y="12" width="14" height="7.5" rx="2" fill="rgba(255,255,255,0.85)"/>
+                    <circle cx="4.5" cy="15.5" r="1.8" fill="rgba(0,0,0,0.3)"/>
+                    <line x1="8.5" y1="14.5" x2="13.5" y2="14.5" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" stroke-linecap="round"/>
+                    <line x1="8.5" y1="16.5" x2="13.5" y2="16.5" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" stroke-linecap="round"/>
+                  </svg>
+                  <span>Pokédex</span>
+                </button>
+                <button class="menu-option" id="menuAchievementsBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+                    <path d="M5 2 L19 2 L19 11 C19 15.5 15.5 18.5 12 19.5 C8.5 18.5 5 15.5 5 11 Z" fill="rgba(255,255,255,0.85)"/>
+                    <path d="M5 5 L2 5 L2 9 C2 11.5 3.5 12.5 5 12" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M19 5 L22 5 L22 9 C22 11.5 20.5 12.5 19 12" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="12" y1="19.5" x2="12" y2="22" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round"/>
+                    <rect x="8" y="22" width="8" height="2" rx="1" fill="rgba(255,255,255,0.85)"/>
+                    <path d="M12 6 L13 9 L16 9 L13.5 10.8 L14.5 13.8 L12 12 L9.5 13.8 L10.5 10.8 L8 9 L11 9 Z" fill="rgba(255,220,0,0.9)"/>
+                  </svg>
+                  <span>Achievements</span>
+                </button>
+              </div>
+              <div id="pokemonView" style="display:none">
                 <h2 id="pokemonName">---</h2>
                 <p id="pokemonDescription">---</p>
                 <p><strong>ID:</strong> <span id="pokemonId">---</span></p>
@@ -172,6 +198,58 @@
                 </div>
                 <div id="searchViewList"></div>
               </div>
+              <div id="pokedexView" style="display:none">
+                <div id="pokedexViewHeader">
+                  <span id="pokedexViewLabel">Pokédex</span>
+                  <span id="pokedexViewCount"></span>
+                </div>
+                <div id="pokedexViewList"></div>
+              </div>
+              <div id="achievementsView" style="display:none">
+                <div id="achievementsViewHeader">
+                  <span id="achievementsViewLabel">Achievements</span>
+                </div>
+                <div id="achievementsGrid"></div>
+              </div>
+              <div id="medalDetailView" style="display:none">
+                <div id="medalDetailSvg"></div>
+                <div id="medalDetailType"></div>
+                <div id="medalDetailTitle"></div>
+                <div class="medal-detail-divider"></div>
+                <div id="medalDetailProgress"></div>
+                <div class="medal-detail-bar">
+                  <div class="medal-detail-bar-fill" id="medalDetailBarFill"></div>
+                </div>
+                <div class="medal-detail-divider"></div>
+                <div id="medalDetailCriteria"></div>
+              </div>
+              </div><!-- end info-screen-content -->
+              <button id="pokedexBackArrowBtn" aria-label="Back to menu" class="pokedex-back-btn" style="display:none">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14">
+                  <path d="M10 3 C6 3 3 5.5 3 8 C3 10.5 5 12.5 7.5 13 L7.5 11 C5.5 10.5 5 9.5 5 8 C5 6.5 7 5 10 5 L10 7 L14 4.5 L10 2 Z" fill="rgba(255,255,255,0.9)"/>
+                </svg>
+              </button>
+              <button id="pokedexFilterBtn" aria-label="Filter Pokédex" class="pokedex-back-btn" style="display:none">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14">
+                  <path d="M1 3 L15 3 L10 8 L10 14 L6 12 L6 8 Z" fill="rgba(255,255,255,0.85)" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"/>
+                </svg>
+              </button>
+              <div id="pokedexFilterDropdown" style="display:none">
+                <label><input type="radio" name="dexFilter" value="all" checked> All</label>
+                <label><input type="radio" name="dexFilter" value="scanned"> Scanned</label>
+                <label><input type="radio" name="dexFilter" value="unscanned"> Unscanned</label>
+              </div>
+              <button id="pokedexBackBtn" aria-label="Back to Pokédex" class="pokedex-back-btn" style="display:none">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 20" width="13" height="17">
+                  <rect x="1" y="0.5" width="14" height="10.5" rx="2" fill="rgba(255,255,255,0.85)"/>
+                  <rect x="3" y="2" width="10" height="7" rx="1" fill="rgba(0,0,0,0.4)"/>
+                  <rect x="1" y="11.5" width="14" height="0.5" fill="rgba(0,0,0,0.2)"/>
+                  <rect x="1" y="12" width="14" height="7.5" rx="2" fill="rgba(255,255,255,0.85)"/>
+                  <circle cx="4.5" cy="15.5" r="1.8" fill="rgba(0,0,0,0.3)"/>
+                  <line x1="8.5" y1="14.5" x2="13.5" y2="14.5" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" stroke-linecap="round"/>
+                  <line x1="8.5" y1="16.5" x2="13.5" y2="16.5" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" stroke-linecap="round"/>
+                </svg>
+              </button>
             </div>
 
             <div class="storage-grid" id="storageGrid">

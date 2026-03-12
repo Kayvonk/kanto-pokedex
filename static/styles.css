@@ -619,19 +619,33 @@ body {
 }
 
 /* Info screen */
-.info-screen {
-  background: #2a9d8f;
-  width: 80%;
-  height: 200px;
-  border-radius: 15px;
-  padding: 20px;
-  color: white;
-  overflow-y: scroll;
-  scrollbar-width: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+@keyframes infoscreenFadeIn {
+  from { background: #333; }
+  to   { background: #2a9d8f; }
 }
 
-.info-screen::-webkit-scrollbar {
+.info-screen {
+  width: 80%;
+  height: 240px;
+  border-radius: 15px;
+  padding: 20px 20px 40px 20px;
+  color: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  animation: infoscreenFadeIn 1s 1.6s both;
+  position: relative;
+}
+
+.info-screen-content {
+  flex: 1;
+  overflow-y: scroll;
+  scrollbar-width: none;
+  min-height: 0;
+}
+
+.info-screen-content::-webkit-scrollbar {
   display: none;
 }
 
@@ -925,6 +939,292 @@ body {
   background: #7cfc7c;
   border-radius: 2px;
   transition: width 0.15s ease;
+}
+
+/* Main menu */
+#menuView {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+  justify-content: center;
+  height: 100%;
+}
+
+.menu-option {
+  padding: 14px 18px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: 'EarlyGameBoy', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.menu-option:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.menu-option svg {
+  flex-shrink: 0;
+}
+
+/* Pokédex browser view */
+#pokedexView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+#pokedexViewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+#pokedexViewLabel {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+#pokedexViewCount {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+#pokedexViewList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+#pokedexViewList::-webkit-scrollbar {
+  display: none;
+}
+
+/* Scan indicator dot */
+.scan-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.scanned .scan-indicator {
+  background: #4caf50;
+  box-shadow: 0 0 4px #4caf50;
+}
+
+.unscanned .scan-indicator {
+  background: #555;
+  border: 1px solid #777;
+}
+
+/* Back arrow sits on the left */
+#pokedexBackArrowBtn {
+  right: auto;
+  left: 10px;
+}
+
+#pokedexFilterDropdown {
+  position: absolute;
+  bottom: 48px;
+  right: 10px;
+  background: #1b7a72;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  min-width: 110px;
+}
+
+#pokedexFilterDropdown label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  color: white;
+  cursor: pointer;
+  font-family: 'EarlyGameBoy', monospace;
+  white-space: nowrap;
+}
+
+#pokedexFilterDropdown input[type="radio"] {
+  accent-color: #7cfc7c;
+  flex-shrink: 0;
+}
+
+/* Achievements view */
+#achievementsView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+#achievementsViewHeader {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+#achievementsViewLabel {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+#achievementsGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+#achievementsGrid::-webkit-scrollbar { display: none; }
+
+.medal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.medal-locked .medal-svg {
+}
+
+.medal-svg {
+  line-height: 0;
+}
+
+.medal-name {
+  font-size: 6.5px;
+  text-align: center;
+  font-weight: bold;
+  line-height: 1.3;
+  font-family: 'EarlyGameBoy', monospace;
+  color: rgba(255, 255, 255, 0.9);
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.medal-progress {
+  font-size: 6px;
+  opacity: 0.6;
+  font-family: 'EarlyGameBoy', monospace;
+}
+
+/* Medal detail view */
+#medalDetailView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  text-align: center;
+}
+
+#medalDetailType {
+  font-size: 9px;
+  font-family: 'EarlyGameBoy', monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.65;
+  color: white;
+}
+
+#medalDetailTitle {
+  font-size: 12px;
+  font-family: 'EarlyGameBoy', monospace;
+  font-weight: bold;
+  color: white;
+  line-height: 1.4;
+}
+
+.medal-detail-divider {
+  width: 80%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+#medalDetailProgress {
+  font-size: 8px;
+  font-family: 'EarlyGameBoy', monospace;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.medal-detail-bar {
+  width: 78%;
+  height: 7px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.medal-detail-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+#medalDetailCriteria {
+  font-size: 7.5px;
+  font-family: 'EarlyGameBoy', monospace;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+  max-width: 88%;
+}
+
+/* Back-to-Pokédex button */
+.pokedex-back-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.22);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pokedex-back-btn:hover {
+  background: rgba(0, 0, 0, 0.36);
 }
 
 .image-placeholder {

@@ -161,6 +161,23 @@ def pokemon_ids():
     return jsonify(base_ids)
 
 
+@app.get("/pokedex-list")
+def pokedex_list():
+    lang = _validate_lang(request.args.get("lang", "en"))
+    entries = []
+    for p in sorted(_pokemon_list, key=lambda x: x["id"]):
+        if p.get("species_id", p["id"]) != p["id"] or p["id"] >= 10000:
+            continue
+        entries.append({
+            "id": p["id"],
+            "name": p["name"],
+            "display_name": p.get("display_names", {}).get(lang) or p.get("display_name", p["name"]),
+            "sprites": p.get("sprites", {}),
+            "types": p.get("types", []),
+        })
+    return jsonify(entries)
+
+
 @app.get("/search")
 def search_pokemon():
     query = request.args.get("q", "").strip().lower()
