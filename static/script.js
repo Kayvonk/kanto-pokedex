@@ -295,7 +295,7 @@ async function showAchievementsView() {
   document.getElementById("achievementsView").style.display = "flex";
   document.getElementById("medalDetailView").style.display = "none";
   document.getElementById("pokedexBackBtn").style.display = "none";
-  document.getElementById("pokedexBackArrowBtn").style.display = "none";
+  document.getElementById("pokedexBackArrowBtn").style.display = "flex";
   document.getElementById("pokedexFilterBtn").style.display = "none";
 
   const grid = document.getElementById("achievementsGrid");
