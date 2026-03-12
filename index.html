@@ -177,6 +177,16 @@
                   </svg>
                   <span>Achievements</span>
                 </button>
+                <button class="menu-option" id="menuSaveLoadBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+                    <rect x="3" y="2" width="18" height="20" rx="2" fill="rgba(255,255,255,0.85)"/>
+                    <rect x="7" y="2" width="10" height="7" rx="1" fill="rgba(0,0,0,0.35)"/>
+                    <rect x="14" y="3" width="2" height="5" rx="0.5" fill="rgba(255,255,255,0.6)"/>
+                    <rect x="5" y="13" width="14" height="8" rx="1" fill="rgba(0,0,0,0.25)"/>
+                    <rect x="8" y="15" width="8" height="4" rx="0.5" fill="rgba(255,255,255,0.5)"/>
+                  </svg>
+                  <span>Save / Load</span>
+                </button>
               </div>
               <div id="pokemonView" style="display:none">
                 <h2 id="pokemonName">---</h2>
@@ -222,6 +232,37 @@
                 </div>
                 <div class="medal-detail-divider"></div>
                 <div id="medalDetailCriteria"></div>
+              </div>
+              <div id="saveLoadView" style="display:none">
+                <div id="saveLoadHeader">
+                  <span id="saveLoadLabel">Save / Load</span>
+                </div>
+                <div id="saveLoadButtons">
+                  <button class="save-load-option" id="saveDataBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+                      <path d="M12 3 L12 15" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M7 11 L12 16 L17 11" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M4 18 L4 21 L20 21 L20 18" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="save-load-option-text">
+                      <span class="save-load-title">Save</span>
+                      <span class="save-load-desc">Download a backup file</span>
+                    </div>
+                  </button>
+                  <button class="save-load-option" id="loadDataBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+                      <path d="M12 16 L12 4" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M7 8 L12 3 L17 8" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M4 18 L4 21 L20 21 L20 18" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="save-load-option-text">
+                      <span class="save-load-title">Load</span>
+                      <span class="save-load-desc">Restore from backup file</span>
+                    </div>
+                  </button>
+                </div>
+                <div id="saveLoadStatus"></div>
+                <input type="file" id="saveLoadFileInput" accept=".pkdx" style="display:none">
               </div>
               </div><!-- end info-screen-content -->
               <button id="pokedexBackArrowBtn" aria-label="Back to menu" class="pokedex-back-btn" style="display:none">

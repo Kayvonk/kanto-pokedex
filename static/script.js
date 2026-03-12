@@ -322,6 +322,7 @@ function showMenuView() {
   document.getElementById("pokedexView").style.display = "none";
   document.getElementById("achievementsView").style.display = "none";
   document.getElementById("medalDetailView").style.display = "none";
+  document.getElementById("saveLoadView").style.display = "none";
   document.getElementById("pokedexBackBtn").style.display = "none";
   document.getElementById("pokedexBackArrowBtn").style.display = "none";
   document.getElementById("pokedexFilterBtn").style.display = "none";
@@ -329,6 +330,93 @@ function showMenuView() {
     mv.style.transition = "opacity 0.5s";
     mv.style.opacity = "1";
   }));
+}
+
+function showSaveLoadView() {
+  document.getElementById("menuView").style.display = "none";
+  document.getElementById("pokemonView").style.display = "none";
+  document.getElementById("boxView").style.display = "none";
+  document.getElementById("searchView").style.display = "none";
+  document.getElementById("pokedexView").style.display = "none";
+  document.getElementById("achievementsView").style.display = "none";
+  document.getElementById("medalDetailView").style.display = "none";
+  document.getElementById("saveLoadView").style.display = "flex";
+  document.getElementById("pokedexBackBtn").style.display = "none";
+  document.getElementById("pokedexFilterBtn").style.display = "none";
+  document.getElementById("pokedexBackArrowBtn").style.display = "flex";
+  document.getElementById("saveLoadStatus").textContent = "";
+}
+
+// AES-GCM key for save file encryption. Prevents casual tampering — the file
+// is an opaque encrypted blob that cannot be edited without this key.
+const _SAVE_KEY_RAW = new Uint8Array([
+  0xa7,0xf3,0xd2,0xe1,0xb8,0xc9,0x4f,0x6e,0x2d,0x5a,0x1b,0x7c,0x3e,0x9f,0x8d,0x4a,
+  0x6b,0x2c,0x5e,0x7f,0x1a,0x3d,0x8b,0x4c,0x6e,0x9f,0x2a,0x5b,0x7c,0x1d,0x4e,0x8f,
+]);
+async function _getSaveKey() {
+  return crypto.subtle.importKey("raw", _SAVE_KEY_RAW, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+}
+
+async function saveData() {
+  const statusEl = document.getElementById("saveLoadStatus");
+  try {
+    const payload = {
+      version: 1,
+      scanned:      JSON.parse(localStorage.getItem("pokedex_scanned_v1") || "[]"),
+      storage:      JSON.parse(localStorage.getItem("pokestorage_v2")     || "[]"),
+      voiceName:    localStorage.getItem("voiceName")          || "",
+      speechVolume: localStorage.getItem("state.speechVolume") || localStorage.getItem("speechVolume") || "0.3",
+      lang:         localStorage.getItem("state.currentLang")  || "en",
+    };
+    const key       = await _getSaveKey();
+    const iv        = crypto.getRandomValues(new Uint8Array(12));
+    const encoded   = new TextEncoder().encode(JSON.stringify(payload));
+    const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+    const combined  = new Uint8Array(12 + encrypted.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(encrypted), 12);
+    // base64-encode so the file is plain text and transferable
+    const b64  = btoa(String.fromCharCode(...combined));
+    const blob = new Blob([b64], { type: "application/octet-stream" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = "pokedex-save.pkdx";
+    a.click();
+    URL.revokeObjectURL(url);
+    statusEl.textContent = "Saved!";
+  } catch {
+    statusEl.textContent = "Save failed.";
+  }
+}
+
+function loadData() {
+  const input    = document.getElementById("saveLoadFileInput");
+  const statusEl = document.getElementById("saveLoadStatus");
+  input.onchange = async () => {
+    try {
+      const b64      = await input.files[0].text();
+      const combined = Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0));
+      const iv        = combined.slice(0, 12);
+      const encrypted = combined.slice(12);
+      const key  = await _getSaveKey();
+      const dec  = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, encrypted);
+      const data = JSON.parse(new TextDecoder().decode(dec));
+      if (!data.version) throw new Error("Invalid save file");
+      if (Array.isArray(data.scanned))  localStorage.setItem("pokedex_scanned_v1", JSON.stringify(data.scanned));
+      if (Array.isArray(data.storage))  localStorage.setItem("pokestorage_v2",     JSON.stringify(data.storage));
+      if (data.voiceName)               localStorage.setItem("voiceName",           data.voiceName);
+      if (data.speechVolume != null) {  localStorage.setItem("speechVolume",        data.speechVolume);
+                                        localStorage.setItem("state.speechVolume",  data.speechVolume); }
+      if (data.lang)                    localStorage.setItem("state.currentLang",   data.lang);
+      statusEl.textContent = "Loaded! Reloading...";
+      setTimeout(() => location.reload(), 800);
+    } catch {
+      statusEl.textContent = "Error: invalid or corrupted save file.";
+    }
+    input.value = "";
+  };
+  input.click();
 }
 
 /** Returns the best sprite URL for a given sprites object. */
@@ -955,6 +1043,9 @@ document.getElementById("pokedexBackArrowBtn").addEventListener("click", () => {
 // Menu buttons
 document.getElementById("menuPokedexBtn").addEventListener("click", () => showPokedexView());
 document.getElementById("menuAchievementsBtn").addEventListener("click", () => showAchievementsView());
+document.getElementById("menuSaveLoadBtn").addEventListener("click", () => showSaveLoadView());
+document.getElementById("saveDataBtn").addEventListener("click", saveData);
+document.getElementById("loadDataBtn").addEventListener("click", loadData);
 
 // Filter button — toggle dropdown
 document.getElementById("pokedexFilterBtn").addEventListener("click", (e) => {
