@@ -136,6 +136,12 @@ def build_entry(pokemon, species_data):
     front_female  = pokemon["sprites"].get("front_female")
     if front_female and not pokemon["name"].endswith("-male"):
         front_default = front_female
+    front_shiny_female = pokemon["sprites"].get("front_shiny_female")
+    front_shiny = (
+        front_shiny_female
+        if front_shiny_female and not pokemon["name"].endswith("-male")
+        else None
+    )
     return {
         "id": pokemon["id"],
         "species_id": species_data["id"],
@@ -145,6 +151,7 @@ def build_entry(pokemon, species_data):
         "descriptions": descriptions,
         "sprites": {
             "front_default": front_default,
+            "front_shiny": front_shiny,
             "official": {
                 "default": official_artwork.get("front_default"),
                 "shiny": official_artwork.get("front_shiny"),
@@ -443,6 +450,28 @@ def backfill_gender_sprites(data):
     return updated
 
 
+def backfill_shiny_gender_sprites(data):
+    """For female-sprite entries missing front_shiny, derive it from front_default URL.
+
+    The PokeAPI sprite repo uses a consistent path convention: the shiny female sprite
+    lives at /pokemon/shiny/female/{id}.png whenever the regular female sprite lives at
+    /pokemon/female/{id}.png. This works generically for any current or future Pokémon
+    with gender-different sprites — no per-species hardcoding needed.
+    """
+    updated = 0
+    for p in data:
+        sprites = p.get("sprites", {})
+        if sprites.get("front_shiny"):
+            continue
+        fd = sprites.get("front_default") or ""
+        if "/pokemon/female/" in fd:
+            sprites["front_shiny"] = fd.replace("/pokemon/female/", "/pokemon/shiny/female/")
+            updated += 1
+    if updated:
+        print(f"  -> {updated} shiny gender sprites backfilled")
+    return updated
+
+
 def main():
     data = load_data()
     existing_names = {p["name"] for p in data}
@@ -478,12 +507,13 @@ def main():
     fixed_display = fix_display_names(data)
     print("\nChecking gender sprites...")
     fixed_gender = backfill_gender_sprites(data)
+    fixed_shiny_gender = backfill_shiny_gender_sprites(data)
 
     if new_entries:
         data.extend(new_entries)
         data.sort(key=lambda p: p["id"])
 
-    if not new_entries and missing_before == 0 and missing_display == 0 and missing_translations == 0 and fixed_display == 0 and fixed_gender == 0:
+    if not new_entries and missing_before == 0 and missing_display == 0 and missing_translations == 0 and fixed_display == 0 and fixed_gender == 0 and fixed_shiny_gender == 0:
         print("pokemon.json is already up to date.")
         return
 

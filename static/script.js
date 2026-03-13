@@ -424,7 +424,7 @@ function loadData() {
 function getSpriteSrc(sprites, shiny = false) {
   if (!sprites) return "";
   return shiny
-    ? sprites.official?.shiny || sprites.front_default || ""
+    ? sprites.front_shiny || sprites.official?.shiny || sprites.front_default || ""
     : sprites.official?.default || sprites.front_default || "";
 }
 

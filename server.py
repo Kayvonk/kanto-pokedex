@@ -152,6 +152,15 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
     # sprite exists separately.
     if front_female and not pokemon["name"].endswith("-male"):
         front_default = front_female
+    # Same logic for the shiny sprite: prefer the female shiny game sprite for non-male
+    # forms that have one. Without this, the shared official shiny artwork (which shows
+    # the male) would be used for implicit-female species like frillish and pyroar.
+    front_shiny_female = pokemon["sprites"].get("front_shiny_female")
+    front_shiny = (
+        front_shiny_female
+        if front_shiny_female and not pokemon["name"].endswith("-male")
+        else None
+    )
     # For implicit-female species, the official artwork "front_default" slot in PokeAPI
     # stores the MALE art (pyroar-male), so we must use "front_female" for the base form.
     # Do NOT use the default slot here — it would show the wrong gender.
@@ -166,6 +175,7 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
         "description": description,
         "sprites": {
             "front_default": front_default,
+            "front_shiny": front_shiny,
             "official": {
                 "default": official_default,
                 "shiny": official_artwork.get("front_shiny"),
