@@ -1242,8 +1242,9 @@ window.addEventListener("resize", () => {
       const data = await res.json();
       if (res.ok && data.pokemon) {
         stopCamera(false);
-        await fetchPokemonDirect(data.pokemon);
-        markScanned(state.currentSpeciesId);
+        const speciesId = data.species_id || data.pokemon;
+        await fetchPokemonDirect(speciesId);
+        markScanned(speciesId);
         if (_pokedexCache) {
           const scanned = getScannedIds();
           document.getElementById("pokedexViewCount").textContent = `${scanned.size} / ${_pokedexCache.length}`;

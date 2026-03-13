@@ -132,6 +132,10 @@ def build_entry(pokemon, species_data):
         None,
     )
     official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
+    front_default = pokemon["sprites"].get("front_default")
+    front_female  = pokemon["sprites"].get("front_female")
+    if front_female and not pokemon["name"].endswith("-male"):
+        front_default = front_female
     return {
         "id": pokemon["id"],
         "species_id": species_data["id"],
@@ -140,7 +144,7 @@ def build_entry(pokemon, species_data):
         "description": description,
         "descriptions": descriptions,
         "sprites": {
-            "front_default": pokemon["sprites"].get("front_default"),
+            "front_default": front_default,
             "official": {
                 "default": official_artwork.get("front_default"),
                 "shiny": official_artwork.get("front_shiny"),
@@ -417,6 +421,28 @@ def backfill_display_names(data):
     return len(missing)
 
 
+def backfill_gender_sprites(data):
+    """For entries without -male suffix, replace front_default with front_female if available."""
+    to_check = [p for p in data if p["id"] < 10000 and not p["name"].endswith("-male")]
+    updated = 0
+    with requests.Session() as session:
+        for p in to_check:
+            try:
+                # Fetch by numeric ID — some slugs (frillish, pyroar) return 404 by name in PokeAPI
+                res = session.get(f"https://pokeapi.co/api/v2/pokemon/{p['id']}", timeout=POKEAPI_TIMEOUT)
+                if not res.ok:
+                    continue
+                front_female = res.json().get("sprites", {}).get("front_female")
+                if front_female and p.get("sprites", {}).get("front_default") != front_female:
+                    p.setdefault("sprites", {})["front_default"] = front_female
+                    updated += 1
+            except Exception:
+                pass
+    if updated:
+        print(f"  -> {updated} gender sprites updated")
+    return updated
+
+
 def main():
     data = load_data()
     existing_names = {p["name"] for p in data}
@@ -450,12 +476,14 @@ def main():
     backfill_species_id(data)
     backfill_display_names(data)
     fixed_display = fix_display_names(data)
+    print("\nChecking gender sprites...")
+    fixed_gender = backfill_gender_sprites(data)
 
     if new_entries:
         data.extend(new_entries)
         data.sort(key=lambda p: p["id"])
 
-    if not new_entries and missing_before == 0 and missing_display == 0 and missing_translations == 0 and fixed_display == 0:
+    if not new_entries and missing_before == 0 and missing_display == 0 and missing_translations == 0 and fixed_display == 0 and fixed_gender == 0:
         print("pokemon.json is already up to date.")
         return
 

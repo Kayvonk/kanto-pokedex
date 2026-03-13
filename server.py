@@ -28,14 +28,27 @@ SUPPORTED_LANGS = {"en", "fr", "de", "es", "it", "ja", "ko", "zh-hans", "zh-hant
 _POKEMON_FILE = os.path.join(os.path.dirname(__file__), "data", "pokemon.json")
 try:
     with open(_POKEMON_FILE, encoding="utf-8") as _f:
-        _pokemon_list = json.load(_f)
+        _data = json.load(_f)
+    _pokemon_list = _data
+    _SPECIES_WITH_MALE_VARIANT = {p["id"] for p in _pokemon_list if p["name"].endswith("-male")}
+    _male_base_names = {p["name"][:-5] for p in _pokemon_list if p["name"].endswith("-male")}
+    _IMPLICIT_FEMALE_NAMES = {
+        p["name"] for p in _pokemon_list
+        if p["name"] in _male_base_names and not p["name"].endswith("-female")
+    }
     _POKEMON_BY_NAME = {p["name"]: p for p in _pokemon_list}
-    _POKEMON_BY_ID = {p["id"]: p for p in _pokemon_list}
+    # Female (non-male) entries take priority for shared IDs in JSON fallback lookups
+    _POKEMON_BY_ID = {}
+    for _p in _pokemon_list:
+        if _p["id"] not in _POKEMON_BY_ID or not _p["name"].endswith("-male"):
+            _POKEMON_BY_ID[_p["id"]] = _p
 except Exception as e:
     logger.error("Failed to load pokemon.json: %s", e)
     _POKEMON_BY_NAME = {}
     _POKEMON_BY_ID = {}
     _pokemon_list = []
+    _SPECIES_WITH_MALE_VARIANT = set()
+    _IMPLICIT_FEMALE_NAMES = set()
 
 
 def _validate_lang(lang: str) -> str:
@@ -117,8 +130,20 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
     if cached_display and cached_display != species_en_name:
         localized_display = cached_entry.get("display_names", {}).get(lang)
         display_name = localized_display or cached_display
+    if pokemon["name"] in _IMPLICIT_FEMALE_NAMES:
+        display_name = display_name + " Female"
 
     official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
+    front_default = pokemon["sprites"].get("front_default")
+    front_female  = pokemon["sprites"].get("front_female")
+    if front_female and not pokemon["name"].endswith("-male"):
+        front_default = front_female
+    # For species where the base form IS the female (has a -male variant):
+    # use female official artwork for the detail image; front_default is already female.
+    official_default = official_artwork.get("front_default")
+    if pokemon["name"] in _IMPLICIT_FEMALE_NAMES:
+        official_default = official_artwork.get("front_female")  # no fallback to male art
+        front_default = None  # clear sprite too; client will show "not available"
     return {
         "id": pokemon["id"],
         "species_id": species_data["id"],
@@ -126,9 +151,9 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
         "display_name": display_name,
         "description": description,
         "sprites": {
-            "front_default": pokemon["sprites"].get("front_default"),
+            "front_default": front_default,
             "official": {
-                "default": official_artwork.get("front_default"),
+                "default": official_default,
                 "shiny": official_artwork.get("front_shiny"),
             },
         },
@@ -154,10 +179,10 @@ def index():
 
 @app.get("/pokemon-ids")
 def pokemon_ids():
-    base_ids = sorted(
+    base_ids = sorted(set(
         p["id"] for p in _pokemon_list
         if p.get("species_id", p["id"]) == p["id"] and p["id"] < 10000
-    )
+    ))
     return jsonify(base_ids)
 
 
@@ -165,14 +190,24 @@ def pokemon_ids():
 def pokedex_list():
     lang = _validate_lang(request.args.get("lang", "en"))
     entries = []
+    seen_ids = set()
     for p in sorted(_pokemon_list, key=lambda x: x["id"]):
         if p.get("species_id", p["id"]) != p["id"] or p["id"] >= 10000:
             continue
+        if p["id"] in seen_ids:
+            continue
+        seen_ids.add(p["id"])
+        sprites = p.get("sprites", {})
+        if p["id"] in _SPECIES_WITH_MALE_VARIANT:
+            sprites = {**sprites, "official": {}}  # clear official art; client falls back to front_default (female)
+        base_display = p.get("display_names", {}).get(lang) or p.get("display_name", p["name"])
+        if p["name"] in _IMPLICIT_FEMALE_NAMES:
+            base_display = base_display + " Female"
         entries.append({
             "id": p["id"],
             "name": p["name"],
-            "display_name": p.get("display_names", {}).get(lang) or p.get("display_name", p["name"]),
-            "sprites": p.get("sprites", {}),
+            "display_name": base_display,
+            "sprites": sprites,
             "types": p.get("types", []),
         })
     return jsonify(entries)
@@ -187,12 +222,20 @@ def search_pokemon():
     if query.isdigit():
         species_id = int(query)
         results = [p for p in _pokemon_list if p.get("species_id", p["id"]) == species_id]
+        def _result_sprites(p):
+            sprites = p.get("sprites", {})
+            if p["id"] in _SPECIES_WITH_MALE_VARIANT and not p["name"].endswith("-male"):
+                sprites = {**sprites, "official": {}}
+            return sprites
+        def _search_display(p):
+            d = p.get("display_names", {}).get(lang) or p.get("display_name", p["name"])
+            return d + " Female" if p["name"] in _IMPLICIT_FEMALE_NAMES else d
         return jsonify([{
             "id": p["id"],
             "species_id": p.get("species_id", p["id"]),
             "name": p["name"],
-            "display_name": p.get("display_names", {}).get(lang) or p.get("display_name", p["name"]),
-            "sprites": p.get("sprites", {}),
+            "display_name": _search_display(p),
+            "sprites": _result_sprites(p),
             "types": p.get("types", []),
         } for p in results])
     words = query.split()
@@ -206,15 +249,33 @@ def search_pokemon():
             or all(w in display for w in words)
             or (localized and all(w in localized for w in words))
         ):
+            sprites = p.get("sprites", {})
+            if p["id"] in _SPECIES_WITH_MALE_VARIANT and not p["name"].endswith("-male"):
+                sprites = {**sprites, "official": {}}
+            d = p.get("display_names", {}).get(lang) or p.get("display_name", p["name"])
+            if p["name"] in _IMPLICIT_FEMALE_NAMES:
+                d = d + " Female"
             results.append({
                 "id": p["id"],
                 "species_id": p.get("species_id", p["id"]),
                 "name": p["name"],
-                "display_name": p.get("display_names", {}).get(lang) or p.get("display_name", p["name"]),
-                "sprites": p.get("sprites", {}),
+                "display_name": d,
+                "sprites": sprites,
                 "types": p.get("types", []),
             })
     return jsonify(results)
+
+
+def _json_entry_response(entry):
+    """Return a JSON response for a local pokemon entry, applying any runtime display patches."""
+    if entry["name"] in _IMPLICIT_FEMALE_NAMES:
+        sprites = entry.get("sprites", {})
+        entry = {
+            **entry,
+            "display_name": (entry.get("display_name") or entry["name"]) + " Female",
+            "sprites": {**sprites, "front_default": None, "official": {**sprites.get("official", {}), "default": None}},
+        }
+    return jsonify(entry)
 
 
 @app.get("/pokemon/<identifier>")
@@ -229,7 +290,7 @@ def get_pokemon(identifier):
         if not response.ok:
             entry = _json_lookup(identifier)
             if entry:
-                return jsonify(entry)
+                return _json_entry_response(entry)
             return jsonify({"error": "Pokémon not found"}), 404
 
         pokemon = response.json()
@@ -242,7 +303,7 @@ def get_pokemon(identifier):
         entry = _json_lookup(identifier)
         if entry:
             logger.info("Using JSON fallback for %s", identifier)
-            return jsonify(entry)
+            return _json_entry_response(entry)
         return jsonify({"error": "Failed to fetch Pokémon"}), 500
 
 
@@ -351,13 +412,17 @@ def detect_pokemon():
     try:
         poke_res = requests.get(f"https://pokeapi.co/api/v2/pokemon/{slug}", timeout=POKEAPI_TIMEOUT)
         if poke_res.ok:
-            return jsonify({"pokemon": poke_res.json()["id"]})
+            pdata = poke_res.json()
+            species_url = (pdata.get("species") or {}).get("url", "")
+            species_id = int(species_url.rstrip("/").split("/")[-1]) if species_url else pdata["id"]
+            return jsonify({"pokemon": species_id, "species_id": species_id})
     except requests.RequestException:
         pass
 
     entry = _POKEMON_BY_NAME.get(slug)
     if entry:
-        return jsonify({"pokemon": entry["id"]})
+        sid = entry.get("species_id", entry["id"])
+        return jsonify({"pokemon": sid, "species_id": sid})
 
     return jsonify({"error": f"Could not find '{slug}' in Pokedex"}), 404
 
