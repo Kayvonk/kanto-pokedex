@@ -1013,11 +1013,29 @@ body {
   flex-direction: column;
   gap: 3px;
   overflow-y: auto;
-  scrollbar-width: none;
+  scrollbar-width: auto;
+  padding-right: 16px;
+  margin-bottom: 10px;
 }
 
 #pokedexViewList::-webkit-scrollbar {
+  width: 14px;
+}
+
+#pokedexViewList::-webkit-scrollbar-button {
   display: none;
+  height: 0;
+  width: 0;
+}
+
+#pokedexViewList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#pokedexViewList::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 7px;
+  min-height: 60px;
 }
 
 /* Scan indicator dot */
