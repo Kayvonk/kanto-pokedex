@@ -2,6 +2,7 @@
 const state = {
   currentId: null,
   currentSpeciesId: null,
+  currentSlug: null,
   speechVolume: parseFloat(localStorage.getItem("speechVolume") ?? "0.3"),
   currentVoice: null,
   currentCryUrl: null,
@@ -489,7 +490,7 @@ async function showPokedexView() {
     indicator.title = scanned.has(p.id) ? "Scanned" : "Not scanned";
 
     entry.append(numSpan, imgEl, nameSpan, indicator);
-    entry.addEventListener("click", () => openFromPokedex(p.id));
+    entry.addEventListener("click", () => fetchPokemonDirect(p.id));
     list.appendChild(entry);
   }
 }
@@ -537,7 +538,11 @@ function updateStorageUI() {
 }
 
 function isInSelectedBox() {
-  return state.currentId != null && storage[selectedBox].some(p => p.id === state.currentId);
+  if (state.currentId == null) return false;
+  const slug = state.currentSlug;
+  return storage[selectedBox].some(p =>
+    slug ? p.slug === slug : p.id === state.currentId
+  );
 }
 
 function updateFavoriteBtn() {
@@ -589,7 +594,7 @@ function showBoxView(boxIndex) {
     entry.append(num, imgEl, name);
     entry.addEventListener("click", () => {
       boxCursor = i;
-      fetchPokemonDirect(pokemon.id);
+      fetchPokemonDirect(pokemon.slug || pokemon.id);
     });
     list.appendChild(entry);
   });
@@ -822,6 +827,7 @@ function showSearchView(results) {
 function displayPokemon(pokemon) {
   state.currentId = pokemon.id;
   state.currentSpeciesId = pokemon.species_id || pokemon.id;
+  state.currentSlug = pokemon.name;
   state.isShiny = false;
   state.currentSprites = pokemon.sprites;
   document.getElementById("shinyBtn").querySelector("circle").setAttribute("fill", "#b71c1c");
@@ -982,11 +988,15 @@ document.querySelectorAll(".storage-box").forEach((box) => {
 document.getElementById("favoriteBtn").addEventListener("click", () => {
   if (!state.currentId || !state.currentSprites) return;
   if (isInSelectedBox()) {
-    storage[selectedBox] = storage[selectedBox].filter(p => p.id !== state.currentId);
+    const slug = state.currentSlug;
+    storage[selectedBox] = storage[selectedBox].filter(p =>
+      slug ? p.slug !== slug : p.id !== state.currentId
+    );
     boxCursor = Math.max(0, Math.min(boxCursor, storage[selectedBox].length - 1));
   } else {
     storage[selectedBox].push({
       id: state.currentId,
+      slug: state.currentSlug,
       name: document.getElementById("pokemonName").textContent,
       sprites: state.currentSprites,
     });
@@ -1014,14 +1024,14 @@ document.getElementById("prevBtn").addEventListener("click", () => {
   const box = storage[selectedBox];
   if (!box.length) return;
   boxCursor = (boxCursor - 1 + box.length) % box.length;
-  fetchPokemonDirect(box[boxCursor].id);
+  fetchPokemonDirect(box[boxCursor].slug || box[boxCursor].id);
 });
 
 document.getElementById("nextBtn").addEventListener("click", () => {
   const box = storage[selectedBox];
   if (!box.length) return;
   boxCursor = (boxCursor + 1) % box.length;
-  fetchPokemonDirect(box[boxCursor].id);
+  fetchPokemonDirect(box[boxCursor].slug || box[boxCursor].id);
 });
 
 // Init storage UI on load
