@@ -839,7 +839,7 @@ body {
   }
 
   .info-screen {
-    margin-top: 100px;
+    margin-top: 200px;
   }
 
   .hinge {
@@ -854,7 +854,7 @@ body {
   .info-screen {
     width: calc(100vw - 140px);
     height: auto;
-    aspect-ratio: 300 / 220;
+    aspect-ratio: 300 / 320;
   }
 
   .nav-arrow {

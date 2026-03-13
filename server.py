@@ -30,14 +30,24 @@ try:
     with open(_POKEMON_FILE, encoding="utf-8") as _f:
         _data = json.load(_f)
     _pokemon_list = _data
+    # Species that have a separate "-male" slug in the data (e.g. ID 668 has both
+    # "pyroar" and "pyroar-male"). Used to suppress official artwork for the base
+    # form in search results, since the stored official art is typically the male version.
     _SPECIES_WITH_MALE_VARIANT = {p["id"] for p in _pokemon_list if p["name"].endswith("-male")}
+
+    # The base slug for these species IS the female form — the opposite of the usual
+    # PokeAPI convention where the base is male. Examples: pyroar, meowstic, frillish.
+    # Knowing this drives sprite selection, display name labeling, and the neutral-gender
+    # view shown when navigating by numeric ID or browsing the Pokédex list.
     _male_base_names = {p["name"][:-5] for p in _pokemon_list if p["name"].endswith("-male")}
     _IMPLICIT_FEMALE_NAMES = {
         p["name"] for p in _pokemon_list
         if p["name"] in _male_base_names and not p["name"].endswith("-female")
     }
+
     _POKEMON_BY_NAME = {p["name"]: p for p in _pokemon_list}
     # Female (non-male) entries take priority for shared IDs in JSON fallback lookups
+    # so that _json_lookup(668) → pyroar (female base), not pyroar-male.
     _POKEMON_BY_ID = {}
     for _p in _pokemon_list:
         if _p["id"] not in _POKEMON_BY_ID or not _p["name"].endswith("-male"):
@@ -136,10 +146,15 @@ def build_pokemon_data(pokemon, species_data, lang="en"):
     official_artwork = ((pokemon["sprites"].get("other") or {}).get("official-artwork") or {})
     front_default = pokemon["sprites"].get("front_default")
     front_female  = pokemon["sprites"].get("front_female")
+    # Prefer the female sprite for any non-male form that has one. For implicit-female
+    # species (e.g. pyroar) front_default from PokeAPI is already the female sprite, so
+    # this only matters for species like unfezant where the base is male but a female
+    # sprite exists separately.
     if front_female and not pokemon["name"].endswith("-male"):
         front_default = front_female
-    # For species where the base form IS the female (has a -male variant):
-    # use female official artwork; front_default is already the female sprite.
+    # For implicit-female species, the official artwork "front_default" slot in PokeAPI
+    # stores the MALE art (pyroar-male), so we must use "front_female" for the base form.
+    # Do NOT use the default slot here — it would show the wrong gender.
     official_default = official_artwork.get("front_default")
     if pokemon["name"] in _IMPLICIT_FEMALE_NAMES:
         official_default = official_artwork.get("front_female") or official_artwork.get("front_default")
@@ -190,11 +205,26 @@ def pokedex_list():
     lang = _validate_lang(request.args.get("lang", "en"))
     entries = []
     seen_ids = set()
+    # IDs that have a non-male base entry (e.g. pyroar at id=668); for these the
+    # "-male" variant is a duplicate and should be suppressed. For species where
+    # the male IS the canonical base (meowstic, indeedee, basculegion, oinkologne)
+    # no non-male entry exists at id < 10000, so the "-male" entry must be kept.
+    ids_with_female_base = {
+        p["id"] for p in _pokemon_list
+        if p["id"] < 10000
+        and p.get("species_id", p["id"]) == p["id"]
+        and not p["name"].endswith("-male")
+    }
     for p in sorted(_pokemon_list, key=lambda x: (x["id"], x["name"])):
         if p.get("species_id", p["id"]) != p["id"] or p["id"] >= 10000:
             continue
-        # Male variants are accessible via search/ID — not shown in main list
-        if p["name"].endswith("-male"):
+        # Male variants are excluded from the list — they appear only in search results
+        # (name or ID search). This keeps the list clean: one entry per species, shown
+        # with a neutral name. The Pokédex list click uses the numeric ID so the server
+        # applies _apply_neutral_gender and shows male sprites for implicit-female species.
+        # Exception: if the male IS the only base form (e.g. meowstic-male at id=678),
+        # keep it so the species has a representative in the list.
+        if p["name"].endswith("-male") and p["id"] in ids_with_female_base:
             continue
         pid = p["id"]
         if pid in seen_ids:
@@ -202,6 +232,8 @@ def pokedex_list():
         seen_ids.add(pid)
         sprites = p.get("sprites", {})
         display = p.get("display_names", {}).get(lang) or p.get("display_name", p["name"])
+        # Strip any gender suffix — the list always shows neutral names (e.g. "Pyroar",
+        # not "Pyroar Female"). Gender-specific names only appear in search results.
         display = _strip_gender(display)
         entries.append({
             "id": p["id"],
@@ -221,9 +253,14 @@ def search_pokemon():
         return jsonify([])
     if query.isdigit():
         species_id = int(query)
+        # Numeric search returns ALL variants for the species (e.g. both pyroar and
+        # pyroar-male for ID 668) so the user can pick the specific form they want.
         results = [p for p in _pokemon_list if p.get("species_id", p["id"]) == species_id]
         def _result_sprites(p):
             sprites = p.get("sprites", {})
+            # The JSON caches male official art in the default slot for implicit-female
+            # species. Clear it in search results so the wrong art isn't shown for the
+            # female form entry; the client will fall back to front_default instead.
             if p["id"] in _SPECIES_WITH_MALE_VARIANT and not p["name"].endswith("-male"):
                 sprites = {**sprites, "official": {}}
             return sprites
@@ -250,6 +287,8 @@ def search_pokemon():
             or (localized and all(w in localized for w in words))
         ):
             sprites = p.get("sprites", {})
+            # Same official-art correction as numeric search — clear the default slot
+            # for implicit-female base forms so the male art isn't shown incorrectly.
             if p["id"] in _SPECIES_WITH_MALE_VARIANT and not p["name"].endswith("-male"):
                 sprites = {**sprites, "official": {}}
             d = p.get("display_names", {}).get(lang) or p.get("display_name", p["name"])
@@ -273,13 +312,27 @@ def _strip_gender(name):
 
 
 def _apply_neutral_gender(data):
-    """Navigation mode (d-pad/list): strip gender from name; use male sprite for implicit females."""
+    """Strip gender context for navigation/list browsing (numeric ID or Pokédex list click).
+
+    When a user navigates by ID or steps through the Pokédex list, they should see a
+    gender-neutral entry (just "Pyroar", not "Pyroar Female"). For implicit-female species
+    (where the base slug IS the female form), we also swap in the male sprites so the
+    canonical-looking image is shown — the female sprite is still reachable by searching
+    the name directly.
+
+    IMPORTANT: this must only be called when is_navigation=True (identifier is a digit).
+    Calling it on a slug-based fetch (e.g. /pokemon/pyroar) would incorrectly overwrite the
+    intentional female view that the user explicitly requested via search or storage.
+    """
     name = data.get("name", "")
     display = data.get("display_name", "")
     if not display.endswith((" Male", " Female")) and name not in _IMPLICIT_FEMALE_NAMES:
         return data
     neutral = _strip_gender(display)
     if name in _IMPLICIT_FEMALE_NAMES:
+        # Use the male variant's sprites for the neutral view. The client will save
+        # this under slug='pyroar' (the female slug) — distinct from 'pyroar-male' —
+        # so both forms remain independently saveable in the storage box.
         male_name = name + "-male"
         male_sprites = _POKEMON_BY_NAME.get(male_name, {}).get("sprites", data.get("sprites", {}))
         return {**data, "display_name": neutral, "sprites": male_sprites}
@@ -287,14 +340,20 @@ def _apply_neutral_gender(data):
 
 
 def _json_entry_response(entry):
-    """Return a JSON response for a local pokemon entry, applying any runtime display patches."""
+    """Return a JSON response for a local pokemon entry, applying any runtime display patches.
+
+    Used as the offline/fallback path when PokeAPI is unreachable. The JSON cache stores
+    data as-scraped, so implicit-female entries need two corrections at response time:
+      1. Append " Female" to the display name (the cache stores the neutral name).
+      2. Clear official.default — the cache stores the MALE official art in that slot;
+         we have no female official art cached, so null is safer than showing the wrong image.
+         front_default is left untouched because the cached sprite IS the female sprite.
+    """
     if entry["name"] in _IMPLICIT_FEMALE_NAMES:
         sprites = entry.get("sprites", {})
         entry = {
             **entry,
             "display_name": (entry.get("display_name") or entry["name"]) + " Female",
-            # Keep front_default (it IS the female sprite); clear official.default since
-            # the JSON stores male official art there and we have no female official art cached.
             "sprites": {**sprites, "official": {**sprites.get("official", {}), "default": None}},
         }
     return jsonify(entry)
@@ -304,6 +363,9 @@ def _json_entry_response(entry):
 def get_pokemon(identifier):
     identifier = identifier.lower()
     lang = _validate_lang(request.args.get("lang", "en"))
+    # Numeric identifiers trigger neutral-gender mode: strip gender labels and show
+    # male sprites for implicit-female species. Slug identifiers (e.g. "pyroar" or
+    # "pyroar-male") are explicit requests for a specific form and must not be altered.
     is_navigation = identifier.isdigit()
     try:
         response = requests.get(

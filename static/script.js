@@ -557,7 +557,7 @@ function showBoxView(boxIndex) {
   document.getElementById("pokemonView").style.display = "none";
   document.getElementById("boxView").style.display = "block";
   document.getElementById("pokedexView").style.display = "none";
-  document.getElementById("pokedexBackBtn").style.display = "none";
+  document.getElementById("pokedexBackBtn").style.display = "flex";
   document.getElementById("pokedexBackArrowBtn").style.display = "none";
   document.getElementById("pokedexFilterBtn").style.display = "none";
 
@@ -1037,7 +1037,7 @@ document.getElementById("nextBtn").addEventListener("click", () => {
 // Init storage UI on load
 updateStorageUI();
 
-// Pokédex icon button on pokemon detail — return to Pokédex list
+// Pokédex icon button on pokemon detail or box view — return to Pokédex list
 document.getElementById("pokedexBackBtn").addEventListener("click", () => showPokedexView());
 
 // Back arrow button on Pokédex list — return to main menu
