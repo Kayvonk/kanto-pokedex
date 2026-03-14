@@ -897,8 +897,8 @@ body {
     background: none;
     border: none;
     padding: 0;
-    width: 44px;
-    height: 44px;
+    width: 32px;
+    height: 32px;
     cursor: pointer;
     z-index: 10;
     opacity: 0.5;
