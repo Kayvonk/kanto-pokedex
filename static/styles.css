@@ -879,13 +879,14 @@ body {
 
   /* Responsive screen sizing */
   .screen-frame {
-    width: calc(100vw - 140px);
+    width: calc(100vw - 100px);
   }
 
   .info-screen {
-    width: calc(100vw - 140px);
+    width: calc(100vw - 100px);
     height: auto;
-    aspect-ratio: 300 / 320;
+    aspect-ratio: 300 / 250;
+    margin-top: 100px;
   }
 
   .nav-arrow {
@@ -900,17 +901,22 @@ body {
     height: 44px;
     cursor: pointer;
     z-index: 10;
+    opacity: 0.3;
+  }
+
+  .nav-arrow:active {
+    opacity: 0.7;
   }
 
   .nav-arrow-right {
-    right: 15px;
-    top: 50%;
+    right: 8px;
+    top: 46%;
     transform: translateY(-50%);
   }
 
   .nav-arrow-left {
-    left: 15px;
-    top: 50%;
+    left: 8px;
+    top: 46%;
     transform: translateY(-50%);
   }
 }
