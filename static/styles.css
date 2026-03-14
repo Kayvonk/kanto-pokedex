@@ -901,7 +901,7 @@ body {
     height: 44px;
     cursor: pointer;
     z-index: 10;
-    opacity: 0.3;
+    opacity: 0.5;
   }
 
   .nav-arrow:active {
