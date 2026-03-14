@@ -675,6 +675,10 @@ body {
 /* Box view */
 #boxView {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 #boxViewHeader {
@@ -684,6 +688,7 @@ body {
   margin-bottom: 10px;
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
 }
 
 #boxViewTitle {
@@ -699,9 +704,35 @@ body {
 }
 
 #boxViewList {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
+  overflow-y: auto;
+  scrollbar-width: auto;
+  padding-right: 16px;
+  margin-bottom: 10px;
+  min-height: 0;
+}
+
+#boxViewList::-webkit-scrollbar {
+  width: 14px;
+}
+
+#boxViewList::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+#boxViewList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#boxViewList::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 7px;
+  min-height: 60px;
 }
 
 #searchViewHeader {

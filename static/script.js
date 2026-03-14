@@ -555,7 +555,7 @@ function showBoxView(boxIndex) {
   document.getElementById("achievementsView").style.display = "none";
   document.getElementById("medalDetailView").style.display = "none";
   document.getElementById("pokemonView").style.display = "none";
-  document.getElementById("boxView").style.display = "block";
+  document.getElementById("boxView").style.display = "flex";
   document.getElementById("pokedexView").style.display = "none";
   document.getElementById("pokedexBackBtn").style.display = "flex";
   document.getElementById("pokedexBackArrowBtn").style.display = "none";
