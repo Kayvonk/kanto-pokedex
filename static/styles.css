@@ -919,6 +919,17 @@ body {
     top: 46%;
     transform: translateY(-50%);
   }
+
+  #pokedexViewList,
+  #boxViewList {
+    scrollbar-width: none;
+    padding-right: 0;
+  }
+
+  #pokedexViewList::-webkit-scrollbar,
+  #boxViewList::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ========================= */
