@@ -4,6 +4,8 @@
 
 ![Kanto Pokédex](static/pokedex_og_thumbnail.png)
 
+![Button Reference](static/pokedex_button_reference.png)
+
 An interactive, browser-based Pokédex application styled after the classic handheld device from the Pokémon games. Browse up to 1,026 Pokémon including alternative forms, scan Pokémon using your camera with AI-powered recognition, save your favorites into storage boxes, collect acheivement medals, and save your progress.
 
 ---
