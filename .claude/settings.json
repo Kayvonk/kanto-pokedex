@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('c:/code/pokedex-sandbox/data/pokemon.json'\\)\\); p=d[0]; print\\(list\\(p.keys\\(\\)\\)\\); print\\('sprites:', list\\(p.get\\('sprites',{}\\).keys\\(\\)\\)\\); print\\('sprite sample:', str\\(p.get\\('sprites',{}\\)\\)[:300]\\)\")",
+      "Bash(py -c \"import json; d=json.load\\(open\\('c:/code/pokedex-sandbox/data/pokemon.json'\\)\\); p=d[0]; print\\(list\\(p.keys\\(\\)\\)\\); print\\('sprites:', list\\(p.get\\('sprites',{}\\).keys\\(\\)\\)\\); print\\('sprite sample:', str\\(p.get\\('sprites',{}\\)\\)[:400]\\)\")"
+    ]
+  }
+}
