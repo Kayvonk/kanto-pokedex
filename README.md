@@ -6,7 +6,7 @@
 
 ![Button Reference](static/pokedex_button_reference.png)
 
-An interactive, browser-based Pokédex application styled after the classic handheld device from the Pokémon games. Browse up to 1,026 Pokémon including alternative forms, scan Pokémon using your camera with AI-powered recognition, save your favorites into storage boxes, collect acheivement medals, and save your progress.
+An interactive, browser-based Pokédex application styled after the classic handheld device from the Pokémon games. Browse up to 1,025 Pokémon including alternative forms, scan Pokémon using your camera with AI-powered recognition, save your favorites into storage boxes, collect acheivement medals, and save your progress.
 
 ---
 
@@ -35,7 +35,7 @@ An interactive, browser-based Pokédex application styled after the classic hand
 
 ## Features
 
-- Browse up to 1,026 Pokémon including alternative forms, with artwork and game sprites
+- Browse up to 1,025 Pokémon including alternative forms, with artwork and game sprites
 - Real-time Pokémon identification via webcam using Google Gemini Vision AI
 - Multilingual descriptions (English, French, German, Spanish, Italian, Japanese, Korean, Simplified Chinese, Traditional Chinese)
 - Text-to-speech with voice selection
@@ -186,7 +186,7 @@ Click the **left arrow button** on the right panel to return to the main menu.
 
 ### Pokédex List
 
-From the right panel menu, click **Pokédex** to open the full list of up to 1,026 Pokémon, including alternative forms.
+From the right panel menu, click **Pokédex** to open the full list of up to 1,025 Pokémon, including alternative forms.
 
 - **Filter button** — toggle the filter dropdown
 - **Filter dropdown** — show All, Scanned only, or Unscanned only
